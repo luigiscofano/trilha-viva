@@ -142,7 +142,7 @@ p {
   display: block;
   overflow: hidden;
   width: 60px;
-  height: 48px;
+  height: 41px;
   flex: none;
 }
 .logo-ref img {
@@ -1217,5 +1217,55 @@ dialog::backdrop {
     animation: none !important;
     transition: none !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* Movimento com intenção: responde ao foco e ao ponteiro sem depender de hover. */
+.btn,
+.icon-button,
+.nav button,
+.material-card,
+.text-link {
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease;
+}
+.btn:focus-visible,
+.icon-button:focus-visible {
+  box-shadow: 0 0 0 4px #1769bd26;
+}
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover,
+  .icon-button:hover {
+    transform: translateY(-2px);
+  }
+  .material-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 9px 24px #163d6512;
+  }
+  .text-link:hover svg {
+    transform: translateX(3px);
+  }
+  .text-link svg {
+    transition: transform 160ms ease;
+  }
+  .nav button:hover {
+    background-color: #eaf3fb;
+  }
+}
+.btn:active,
+.icon-button:active {
+  transform: translateY(0) scale(0.98);
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn,
+  .icon-button,
+  .nav button,
+  .material-card,
+  .text-link,
+  .text-link svg {
+    transition: none;
+    transform: none !important;
   }
 }

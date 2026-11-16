@@ -1,5 +1,5 @@
 /** Núcleo local-first, sem dependência de DOM, rede ou provedor de IA. */
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 export const LIMITS = Object.freeze({
   materialCharacters: 300_000,
   chunkCharacters: 1_800,
@@ -42,6 +42,7 @@ export function createEmptyState() {
     materials: [],
     suggestions: [],
     tasks: [],
+    history: [],
   };
 }
 
@@ -154,12 +155,19 @@ export function reviewSuggestion(
     ),
   );
   const updated = validateSuggestion({ ...current, ...patch }, state.materials);
-  return {
-    ...state,
-    suggestions: state.suggestions.map((item) =>
-      item.id === suggestionId ? updated : item,
-    ),
-  };
+  return recordHistory(
+    {
+      ...state,
+      suggestions: state.suggestions.map((item) =>
+        item.id === suggestionId ? updated : item,
+      ),
+    },
+    {
+      type: "suggestion-reviewed",
+      entityId: suggestionId,
+      summary: `Sugestão revisada: ${updated.title} (${updated.status}).`,
+    },
+  );
 }
 
 export function createTask(
@@ -181,7 +189,7 @@ export function createTask(
 
 /** Reconstrói apenas campos conhecidos; dados arbitrários não entram no estado da aplicação. */
 export function validateState(input) {
-  if (!input || input.schemaVersion !== SCHEMA_VERSION)
+  if (!input || ![1, SCHEMA_VERSION].includes(input.schemaVersion))
     throw new Error("Versão de backup incompatível.");
   const materials = unique(
     list(input.materials).map((material) => {
@@ -228,7 +236,18 @@ export function validateState(input) {
   const tasks = unique(
     list(input.tasks).map((task) => createTask(task, materials)),
   );
-  return { schemaVersion: SCHEMA_VERSION, materials, suggestions, tasks };
+  const history = unique(
+    list(input.history ?? (input.schemaVersion === 1 ? [] : undefined)).map(
+      validateHistoryEvent,
+    ),
+  );
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    materials,
+    suggestions,
+    tasks,
+    history,
+  };
 }
 
 export function exportBackup(state) {
@@ -254,7 +273,7 @@ export function importBackup(serialized, current = createEmptyState()) {
   const incoming = validateState(parsed);
   const existing = validateState(current);
   const merged = createEmptyState();
-  for (const key of ["materials", "suggestions", "tasks"]) {
+  for (const key of ["materials", "suggestions", "tasks", "history"]) {
     const byId = new Map(existing[key].map((item) => [item.id, item]));
     for (const item of incoming[key]) {
       if (
@@ -294,4 +313,132 @@ export function getProgress(
       ? Math.round((completed / state.tasks.length) * 100)
       : 0,
   };
+}
+
+export const HISTORY_TYPES = Object.freeze([
+  "material-added",
+  "material-renamed",
+  "material-deleted",
+  "suggestion-created",
+  "suggestion-reviewed",
+  "task-created",
+  "task-updated",
+  "task-deleted",
+  "backup-imported",
+]);
+
+function validateHistoryEvent(event) {
+  if (!event || !HISTORY_TYPES.includes(event.type))
+    throw new Error("Tipo de evento inválido.");
+  const occurredAt = text(event.occurredAt, "Data do evento", 80);
+  if (
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(occurredAt) ||
+    !Number.isFinite(Date.parse(occurredAt)) ||
+    new Date(occurredAt).toISOString() !== occurredAt
+  )
+    throw new Error("Data do evento inválida.");
+  return {
+    id: id(event.id),
+    type: event.type,
+    occurredAt,
+    entityId: event.entityId === null ? null : id(event.entityId),
+    summary: text(event.summary, "Descrição do evento", 1000),
+  };
+}
+
+/** Eventos não precisam apontar para um registro ainda existente: preservam exclusões no histórico. */
+export function recordHistory(
+  state,
+  {
+    id: eventId = globalThis.crypto.randomUUID(),
+    occurredAt = new Date().toISOString(),
+    entityId = null,
+    type,
+    summary,
+  },
+) {
+  const clean = validateState(state);
+  const event = validateHistoryEvent({
+    id: eventId,
+    occurredAt,
+    entityId,
+    type,
+    summary,
+  });
+  if (clean.history.some((item) => item.id === event.id))
+    throw new Error("Evento de histórico duplicado.");
+  if (clean.history.length >= LIMITS.records)
+    throw new Error(
+      "Histórico atingiu o limite. Exporte seus dados antes de continuar.",
+    );
+  return { ...clean, history: [...clean.history, event] };
+}
+
+/** A renomeação preserva IDs, trechos, páginas e todas as referências já existentes. */
+export function renameMaterial(state, materialId, title) {
+  const clean = validateState(state);
+  const material = clean.materials.find((item) => item.id === materialId);
+  if (!material) throw new Error("Material não encontrado.");
+  const nextTitle = text(title, "Título", 240);
+  if (nextTitle === material.title) return clean;
+  return recordHistory(
+    {
+      ...clean,
+      materials: clean.materials.map((item) =>
+        item.id === materialId ? { ...item, title: nextTitle } : item,
+      ),
+    },
+    {
+      type: "material-renamed",
+      entityId: materialId,
+      summary: `Material renomeado de “${material.title}” para “${nextTitle}”.`,
+    },
+  );
+}
+
+/** Consulte estas dependências para explicar a consequência antes de confirmar uma exclusão. */
+export function getMaterialDependencies(state, materialId) {
+  const clean = validateState(state);
+  if (!clean.materials.some((item) => item.id === materialId))
+    throw new Error("Material não encontrado.");
+  return {
+    suggestions: clean.suggestions
+      .filter((item) => item.materialId === materialId)
+      .map((item) => item.id),
+    tasks: clean.tasks
+      .filter((item) => item.materialId === materialId)
+      .map((item) => item.id),
+  };
+}
+
+/** Sem cascata explícita, recusa excluir fontes usadas por sugestões ou tarefas. */
+export function deleteMaterial(state, materialId, { cascade = false } = {}) {
+  if (typeof cascade !== "boolean")
+    throw new Error("Confirmação de exclusão inválida.");
+  const clean = validateState(state);
+  const dependencies = getMaterialDependencies(clean, materialId);
+  if (
+    !cascade &&
+    (dependencies.suggestions.length || dependencies.tasks.length)
+  ) {
+    throw new Error(
+      `Este material possui ${dependencies.suggestions.length} sugestão(ões) e ${dependencies.tasks.length} tarefa(s). Confirme explicitamente a exclusão conjunta ou mantenha a fonte.`,
+    );
+  }
+  const material = clean.materials.find((item) => item.id === materialId);
+  return recordHistory(
+    {
+      ...clean,
+      materials: clean.materials.filter((item) => item.id !== materialId),
+      suggestions: clean.suggestions.filter(
+        (item) => item.materialId !== materialId,
+      ),
+      tasks: clean.tasks.filter((item) => item.materialId !== materialId),
+    },
+    {
+      type: "material-deleted",
+      entityId: materialId,
+      summary: `Material “${material.title}” excluído com ${dependencies.suggestions.length} sugestão(ões) e ${dependencies.tasks.length} tarefa(s) vinculada(s).`,
+    },
+  );
 }

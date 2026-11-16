@@ -243,6 +243,7 @@ test("status não revela segredos e CORS permite apenas origem exata", async (t)
   assert.equal(status.headers.get("access-control-allow-origin"), origin);
   assert.deepEqual(await status.json(), {
     configured: true,
+    importLinksConfigured: false,
     provider: "n8n",
     requiresAuthentication: true,
   });

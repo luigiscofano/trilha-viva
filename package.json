@@ -12,7 +12,10 @@
     "start": "node server/study-server.mjs"
   },
   "dependencies": {
-    "pdfjs-dist": "^6.5.438"
+    "@tesseract.js-data/eng": "^1.0.0",
+    "@tesseract.js-data/por": "^1.0.0",
+    "pdfjs-dist": "^6.5.438",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
     "prettier": "^3.10.1"

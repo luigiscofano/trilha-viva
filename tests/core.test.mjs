@@ -11,6 +11,10 @@ import {
   getProgress,
   validateState,
   validateAiSuggestion,
+  recordHistory,
+  renameMaterial,
+  deleteMaterial,
+  getMaterialDependencies,
 } from "../src/core.mjs";
 const material = () =>
   createMaterial({
@@ -165,3 +169,111 @@ test("provedor não pode aceitar a própria sugestão", () =>
       .status,
     "pending",
   ));
+
+test("backup v1 migra para v2 sem apagar dados ou inventar histórico", () => {
+  const old = {
+    schemaVersion: 1,
+    materials: [material()],
+    suggestions: [],
+    tasks: [],
+  };
+  const migrated = importBackup(JSON.stringify(old));
+  assert.equal(migrated.schemaVersion, 2);
+  assert.deepEqual(migrated.materials, old.materials);
+  assert.deepEqual(migrated.history, []);
+  assert.equal(old.schemaVersion, 1);
+});
+
+test("histórico durável sobrevive exportação, importação e união", () => {
+  const event = {
+    id: "event-1",
+    occurredAt: "2026-01-01T12:00:00.000Z",
+    type: "material-added",
+    entityId: "mat-1",
+    summary: "Material adicionado.",
+  };
+  const s = recordHistory(state(), event);
+  assert.deepEqual(importBackup(exportBackup(s)), s);
+  const extra = recordHistory(state(), {
+    ...event,
+    id: "event-2",
+    summary: "Outra ação.",
+  });
+  assert.equal(importBackup(exportBackup(extra), s).history.length, 2);
+  assert.equal(importBackup(exportBackup(s), s).history.length, 1);
+});
+
+test("renomear não altera referências, sugestões ou páginas", () => {
+  const s = state();
+  s.suggestions = [validateSuggestion(suggestion(), s.materials)];
+  const renamed = renameMaterial(s, "mat-1", "Novo nome");
+  assert.equal(renamed.materials[0].title, "Novo nome");
+  assert.deepEqual(renamed.materials[0].chunks, s.materials[0].chunks);
+  assert.deepEqual(renamed.suggestions, s.suggestions);
+  assert.equal(renamed.history.at(-1).type, "material-renamed");
+  assert.equal(s.materials[0].title, "Texto fictício");
+});
+
+test("excluir fonte em uso bloqueia sem perder sugestões ou tarefas", () => {
+  const s = state();
+  s.suggestions = [validateSuggestion(suggestion(), s.materials)];
+  s.tasks = [
+    createTask(
+      {
+        id: "t1",
+        title: "Revisar",
+        dueDate: "2026-01-01",
+        materialId: "mat-1",
+      },
+      s.materials,
+    ),
+  ];
+  const before = exportBackup(s);
+  assert.deepEqual(getMaterialDependencies(s, "mat-1"), {
+    suggestions: ["q-1"],
+    tasks: ["t1"],
+  });
+  assert.throws(() => deleteMaterial(s, "mat-1"), /Confirme explicitamente/);
+  assert.equal(exportBackup(s), before);
+  const deleted = deleteMaterial(s, "mat-1", { cascade: true });
+  assert.equal(deleted.materials.length, 0);
+  assert.equal(deleted.suggestions.length, 0);
+  assert.equal(deleted.tasks.length, 0);
+  assert.equal(deleted.history.at(-1).entityId, "mat-1");
+  assert.match(deleted.history.at(-1).summary, /1 sugestão.*1 tarefa/);
+  assert.deepEqual(importBackup(exportBackup(deleted)), deleted);
+});
+
+test("exclusão isolada preserva registros sem vínculo", () => {
+  const s = state();
+  s.tasks = [createTask({ id: "t1", title: "Livre", dueDate: "2026-01-01" })];
+  const deleted = deleteMaterial(s, "mat-1");
+  assert.deepEqual(deleted.tasks, s.tasks);
+  assert.equal(deleted.history.length, 1);
+});
+
+test("revisão grava evento e eventos inválidos ou conflitantes não entram", () => {
+  const s = state();
+  s.suggestions = [validateSuggestion(suggestion(), s.materials)];
+  assert.equal(
+    reviewSuggestion(s, "q-1", { status: "accepted" }).history.at(-1).type,
+    "suggestion-reviewed",
+  );
+  assert.throws(() => recordHistory(s, { type: "inventado", summary: "A" }));
+  assert.throws(() =>
+    recordHistory(s, {
+      type: "task-created",
+      occurredAt: "2026-02-30T12:00:00.000Z",
+      summary: "A",
+    }),
+  );
+  const event = {
+    id: "ev",
+    type: "task-created",
+    occurredAt: "2026-01-01T12:00:00.000Z",
+    summary: "A",
+  };
+  const one = recordHistory(s, event);
+  const other = recordHistory(s, { ...event, summary: "B" });
+  assert.throws(() => importBackup(exportBackup(other), one), /Conflito/);
+});
