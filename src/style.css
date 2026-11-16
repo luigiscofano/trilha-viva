@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap");
+@import url("../vendor/fonts/fonts.css");
 
 /* Tokens únicos para manter a direção azul coerente em todas as telas. */
 :root {
@@ -13,7 +13,9 @@
   --line: #e0e9f3;
   --radius: 10px;
   --content-width: 1180px;
-  font-family: "Manrope", system-ui, sans-serif;
+  --font-heading: "Manrope Variable", system-ui, sans-serif;
+  --font-body: "DM Sans Variable", system-ui, sans-serif;
+  font-family: var(--font-body);
   color: var(--ink);
   background: var(--paper);
   font-synthesis: none;
@@ -61,6 +63,14 @@ h2,
 h3,
 p {
   margin: 0;
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
 }
 h1 {
   font-size: 36px;

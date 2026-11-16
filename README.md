@@ -6,9 +6,18 @@ Plataforma web de estudos que reúne materiais, organiza referências, apoia a r
 
 [Repositório](https://github.com/luigiscofano/trilha-viva) · [Site no GitHub Pages](https://luigiscofano.github.io/trilha-viva/) · [Documentação](docs/README.md)
 
-> **Estado desta documentação:** descreve a evolução em desenvolvimento e QA. Os PRs [#1](https://github.com/luigiscofano/trilha-viva/pull/1), [#2](https://github.com/luigiscofano/trilha-viva/pull/2), [#3](https://github.com/luigiscofano/trilha-viva/pull/3) e [#4](https://github.com/luigiscofano/trilha-viva/pull/4) foram integrados. A implantação do PR #4 está em andamento; a documentação complementar será organizada no PR #5. A presença de um recurso no código não prova que ele já está no site publicado.
+> **Estado verificado:** PRs #1–#5 integrados e frontend publicado. Materiais, OCR local, revisão, plano, histórico e backup funcionam sem cadastro. IA, importação segura de links via servidor e automações externas dependem de configuração; não estão ativadas no GitHub Pages. Contas e sincronização ainda não foram implementadas.
 
 ![Painel do Trilha Viva com identidade azul e materiais demonstrativos](docs/images/painel.jpg)
+
+## Comece por aqui
+
+- [Abrir o aplicativo](https://luigiscofano.github.io/trilha-viva/)
+- [Funcionalidades e limites](#funcionalidades-e-limites-reais)
+- [Identidade visual e tipografia](#direção-visual)
+- [Documentação técnica e guias](docs/README.md)
+- [IA e integrações: o que configurar](docs/integracoes.md)
+- [Instalação, testes e uso](#instalação-e-execução)
 
 ## Objetivos acadêmicos e de produto
 
@@ -70,9 +79,9 @@ Os tokens em `src/style.css` mantêm consistência:
 | Realce leve | `#EAF3FF` |
 | Divisórias | `#E0E9F3` |
 
-Tipografia **Manrope**, com fallback `system-ui`, superfícies claras, cantos moderados de 10 px e largura de conteúdo limitada. Animações são discretas e respeitam redução de movimento. A marca não reutiliza o Intuição nem a identidade de outras organizações.
+Tipografia aprovada **A: Manrope nos títulos e DM Sans no corpo, controles e menus**, com fallback `system-ui`, superfícies claras, cantos moderados de 10 px e largura de conteúdo limitada. Animações são discretas e respeitam redução de movimento. A marca não reutiliza o Intuição nem a identidade de outras organizações.
 
-A Manrope é solicitada ao Google Fonts: isso gera uma conexão externa para fontes, não para materiais ou IA. Auto-hospedagem das fontes exige incluir os arquivos e a licença correspondente.
+As fontes variáveis reais são auto-hospedadas por meio dos pacotes Fontsource, com arquivos WOFF2 Latin/Latin Extended e licenças OFL incluídas no build. Não há solicitação ao Google Fonts. DM Sans inclui itálico real; `font-display: swap` mantém o texto legível durante o carregamento. A regra é global para todas as páginas e diálogos, sem alterar a logo aprovada. Veja [tipografia](docs/tipografia.md).
 
 ## Instalação e execução
 
@@ -185,7 +194,7 @@ PDF e OCR são locais. Enviar um material à IA é outra etapa: título, trechos
 
 As suítes verificam núcleo, migração/histórico, referências, PDFs sintéticos com PDF.js real, OCR, calendário ICS, contrato/cliente de IA e servidor. Parte dos testes usa mocks controlados; eles não comprovam acesso a provedores ou serviços externos. Consulte [registro de validação](docs/validacao.md) para separar execuções anteriores da etapa atual.
 
-Teclado, foco, rótulos, regiões de status, modais nativos e redução de movimento fazem parte da implementação. Não declaramos conformidade WCAG completa nem compatibilidade testada em todos os aparelhos. O PR #4 passou no CI com 70 testes. O OCR real foi validado no navegador com duas páginas sintéticas reconhecidas e salvas. Isso não substitui testes com documentos complexos ou aparelhos diversos; a implantação ainda está em andamento.
+Teclado, foco, rótulos, regiões de status, modais nativos e redução de movimento fazem parte da implementação. Não declaramos conformidade WCAG completa nem compatibilidade testada em todos os aparelhos. O PR #4 passou no CI com 70 testes. O OCR real foi validado no navegador com duas páginas sintéticas reconhecidas e salvas. Isso não substitui testes com documentos complexos ou aparelhos diversos; o frontend atualizado foi conferido após a implantação.
 
 ## Publicação e manutenção
 
