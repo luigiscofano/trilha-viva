@@ -1,8 +1,18 @@
-import { readIntegrationStatus, requestSuggestions } from "./ai-client.mjs";
+import { recognizePdf } from "./ocr.mjs";
+import { createReminderCalendar } from "./reminders.mjs";
+import {
+  readIntegrationStatus,
+  requestSuggestions,
+  requestLinkImport,
+} from "./ai-client.mjs";
 import { brandMarkup, learningIllustration } from "./brand.mjs";
 import { extractPdf } from "./pdf.mjs";
 import {
   createEmptyState,
+  recordHistory,
+  renameMaterial,
+  deleteMaterial,
+  getMaterialDependencies,
   createMaterial,
   createTask,
   exportBackup,
@@ -35,12 +45,15 @@ let reviewFilter = "pending";
 let selectedSuggestion = null;
 let integrationStatus = { configured: false };
 let operatorToken = "";
+let ocrController = null;
+let ocrDraft = null;
 const pages = {
   dashboard: "Visão geral",
   materials: "Meus materiais",
   review: "Revisão de conteúdo",
   plan: "Plano de estudos",
   settings: "Dados e integrações",
+  history: "Histórico",
 };
 function save() {
   try {
@@ -94,7 +107,7 @@ function shell() {
       </div></header>
       <main class="main"><div class="content fade-in" id="content" tabindex="-1">
         ${storageBlocked ? `<div class="callout" role="alert">O armazenamento anterior não pôde ser lido. Ele foi preservado sem sobrescrever. Exporte uma cópia dos dados originais em Dados e integrações; novas alterações permanecem somente nesta sessão.</div>` : ""}
-        ${{ dashboard, materials, review, plan, settings }[view]()}
+        ${{ dashboard, materials, review, plan, settings, history: historyView }[view]()}
         <footer class="footer-note">${icon("shield", 14)} Dados salvos apenas neste navegador. Faça backup para não perder seus estudos. <button class="text-link" data-action="export">Exportar backup</button></footer>
       </div></main>
     </div>`;
@@ -195,7 +208,8 @@ function plan() {
       "SEU RITMO, SUA TRILHA",
       "Planeje com espaço para viver.",
       "Organize revisões sem uma rotina obrigatória ou notificações inesperadas.",
-      button("Nova tarefa", "add-task", "", "plus"),
+      button("Nova tarefa", "add-task", "", "plus") +
+        button("Calendário", "reminders", "secondary", "calendar"),
     ) +
     `<div class="plan-grid">${[
       ["Para agora", (t) => !t.completed && t.dueDate <= today],
@@ -219,6 +233,32 @@ function plan() {
       )}</div><div class="footer-note">${icon("calendar", 14)}Datas servem para organizar. Nenhum e-mail ou notificação é enviado.</div>`
   );
 }
+function historyView() {
+  return (
+    heading(
+      "SUA TRAJETÓRIA",
+      "Histórico de estudos",
+      "Eventos registrados a partir desta versão. Não inventamos ações anteriores.",
+    ) +
+    `<div class="panel">${
+      [...(state.history || [])]
+        .reverse()
+        .map(
+          (e) =>
+            `<article class="material-row"><div><strong>${escape(e.summary)}</strong><p class="small muted">${escape(new Date(e.occurredAt).toLocaleString("pt-BR"))}</p></div></article>`,
+        )
+        .join("") || "<p>Nenhum evento registrado ainda.</p>"
+    }</div>`
+  );
+}
+function manageMaterial(id) {
+  const material = state.materials.find((m) => m.id === id);
+  const deps = getMaterialDependencies(state, id);
+  modal(
+    "Gerenciar material",
+    `<form id="manage-material-form" data-id="${escape(id)}" class="form-grid"><label class="field">Título<input name="title" required maxlength="240" value="${escape(material.title)}"></label><p class="small muted">Renomear preserva todos os trechos, referências e tarefas. O texto original é mantido para não invalidar suas fontes.</p><button type="submit" class="btn">Salvar título</button></form><hr><form id="delete-material-form" data-id="${escape(id)}" class="form-grid"><p>Excluir este material também removerá ${deps.suggestions.length} conteúdo(s) e ${deps.tasks.length} tarefa(s) vinculados. Exporte um backup primeiro.</p><label class="task-row"><input name="confirmed" type="checkbox" required><span>Confirmo a exclusão do material e dos itens vinculados.</span></label><button type="submit" class="btn secondary">Excluir material e vínculos</button></form>`,
+  );
+}
 function settings() {
   return (
     heading(
@@ -226,7 +266,7 @@ function settings() {
       "Seus dados, suas escolhas.",
       "Saiba o que funciona localmente e o que ainda precisa ser conectado.",
     ) +
-    `<div class="balance-card"><h2>Armazenamento e backup</h2>${damagedBackup ? button("Exportar dados originais preservados", "export-original", "secondary") : ""}<p>Este aplicativo salva materiais, revisão e tarefas apenas neste navegador. Limpar seus dados ou mudar de aparelho pode apagar o acesso ao progresso. Não existe sincronização ou conta nesta etapa.</p><div class="settings-row"><div><h3>Exportar uma cópia</h3><p>Arquivo JSON com materiais, sugestões e tarefas.</p></div>${button("Exportar backup", "export", "secondary", "download")}</div><div class="settings-row"><div><h3>Restaurar um backup</h3><p>Importação validada, sem sobrescrever registros conflitantes.</p></div>${button("Importar arquivo", "import", "secondary")}</div><div class="settings-row"><div><h3>IA e automações</h3><p>A geração só funciona com backend configurado. Materiais nunca são enviados automaticamente. Make, Zapier, v0, Bolt e Cursor não foram utilizados na implementação.</p></div>${button("Configurar sessão", "configure-ai", "secondary")}</div><div class="settings-row"><div><h3>PDFs locais e links</h3><p>PDFs com texto são extraídos localmente, com referência de página. Imagens não são interpretadas e não há OCR. Links externos não são lidos nesta versão.</p></div><span class="tag">PDF local disponível</span></div></div>`
+    `<div class="balance-card"><button class="btn secondary" data-view="history">Ver histórico</button><h2>Armazenamento e backup</h2>${damagedBackup ? button("Exportar dados originais preservados", "export-original", "secondary") : ""}<p>Este aplicativo salva materiais, revisão e tarefas apenas neste navegador. Limpar seus dados ou mudar de aparelho pode apagar o acesso ao progresso. Não existe sincronização ou conta nesta etapa.</p><div class="settings-row"><div><h3>Exportar uma cópia</h3><p>Arquivo JSON com materiais, sugestões e tarefas.</p></div>${button("Exportar backup", "export", "secondary", "download")}</div><div class="settings-row"><div><h3>Restaurar um backup</h3><p>Importação validada, sem sobrescrever registros conflitantes.</p></div>${button("Importar arquivo", "import", "secondary")}</div><div class="settings-row"><div><h3>IA e automações</h3><p>A geração só funciona com backend configurado. Materiais nunca são enviados automaticamente. Make, Zapier, v0, Bolt e Cursor não foram utilizados na implementação.</p></div>${button("Configurar sessão", "configure-ai", "secondary")}</div><div class="settings-row"><div><h3>PDFs locais e links</h3><p>PDFs com texto são extraídos localmente, com referência de página. OCR de PDFs é opcional, local e exige revisão. Links exigem backend e domínios autorizados; não funcionam no Pages sozinho.</p></div><span class="tag">PDF local disponível</span></div></div>`
   );
 }
 function modal(title, content) {
@@ -239,14 +279,23 @@ function openMaterial(id) {
   if (!m) return;
   modal(
     escape(m.title),
-    `<div class="form-grid">${m.chunks.map((c, i) => `<section><span class="label">TRECHO ${i + 1}${c.page ? " · PÁGINA " + c.page : ""}</span><p style="font-size:14px;line-height:1.8">${escape(c.text)}</p></section>`).join("")}<div class="callout">Fonte extraída localmente. Confira possíveis erros de leitura, principalmente em tabelas e documentos com várias colunas.</div></div>`,
+    `<button class="btn secondary" data-manage-material="${escape(m.id)}">Gerenciar material</button><div class="form-grid">${m.chunks.map((c, i) => `<section><span class="label">TRECHO ${i + 1}${c.page ? " · PÁGINA " + c.page : ""}</span><p style="font-size:14px;line-height:1.8">${escape(c.text)}</p></section>`).join("")}<div class="callout">Fonte extraída localmente. Confira possíveis erros de leitura, principalmente em tabelas e documentos com várias colunas.</div></div>`,
+  );
+}
+function linkImportModal() {
+  modal(
+    "Importar texto de link autorizado",
+    `<form id="link-import-form" class="form-grid"><label class="field">Endereço HTTPS<input type="url" name="url" required maxlength="2000"></label><p>Somente texto puro UTF-8 de domínios autorizados pelo operador. Não lê páginas HTML, login, PDFs remotos ou redirecionamentos. A URL será enviada ao backend; o site de origem receberá a requisição do servidor.</p><label class="task-row"><input type="checkbox" name="consent" required><span>Tenho permissão de acesso e autorizo buscar esse conteúdo.</span></label><button class="btn" type="submit">Buscar para conferir</button></form>`,
   );
 }
 function addMaterial() {
   modal(
     "Um novo ponto de partida",
-    `<form id="material-form" class="form-grid"><label class="field">Nome do material<input name="title" required maxlength="200" placeholder="Ex.: Introdução à biologia"></label><label class="field">Formato<select name="sourceType" id="material-type"><option value="text">Texto</option><option value="pdf">PDF local</option></select></label><label class="field" id="text-field">Texto para estudar<textarea name="content" required maxlength="50000" placeholder="Cole um texto que você tenha permissão para utilizar..."></textarea><small>Até 50 mil caracteres nesta versão. O texto fica neste navegador.</small></label><label class="field" id="pdf-field" hidden>PDF para estudar<input type="file" name="pdf" accept="application/pdf,.pdf"><small>Até 10 MB e 100 páginas. Extração local, sem envio. PDFs digitalizados precisam de OCR externo.</small></label><p id="import-progress" class="small muted" role="status"></p><div class="callout">Importação de links não está habilitada. Não simulamos uma leitura que não aconteceu.</div><button class="btn" type="submit">${icon("plus", 16)}Adicionar material</button></form>`,
+    `<form id="material-form" class="form-grid"><label class="field">Nome do material<input name="title" required maxlength="200" placeholder="Ex.: Introdução à biologia"></label><label class="field">Formato<select name="sourceType" id="material-type"><option value="text">Texto</option><option value="pdf">PDF local</option></select></label><label class="field" id="text-field">Texto para estudar<textarea name="content" required maxlength="50000" placeholder="Cole um texto que você tenha permissão para utilizar..."></textarea><small>Até 50 mil caracteres nesta versão. O texto fica neste navegador.</small></label><label class="field" id="pdf-field" hidden>PDF para estudar<input type="file" name="pdf" accept="application/pdf,.pdf"><small>Até 10 MB e 100 páginas. Extração local, sem envio. Para digitalizados, use OCR local opcional (até 8 páginas por leitura).</small></label><label class="task-row" id="ocr-option" hidden><input type="checkbox" name="ocr"><span>Usar OCR local neste PDF (português; pode demorar). O texto será mostrado para revisão antes de salvar.</span></label><p id="import-progress" class="small muted" role="status"></p>${integrationStatus.importLinksConfigured ? button("Importar link autorizado", "import-link", "secondary") : '<div class="callout">Importação de links requer backend configurado; não está habilitada nesta origem.</div>'}<button class="btn" type="submit">${icon("plus", 16)}Adicionar material</button></form>`,
   );
+}
+function referenceChoices(material, selected = []) {
+  return `<fieldset id="reference-choices"><legend>Trechos que sustentam esta anotação</legend><p class="small muted">Selecione somente as fontes relevantes. Ao menos uma é necessária.</p>${material.chunks.map((c, i) => `<label class="task-row"><input type="checkbox" name="reference" value="${escape(c.id)}" ${selected.includes(c.id) ? "checked" : ""}><span><strong>Trecho ${i + 1}${c.page ? " · página " + c.page : ""}</strong><small>${escape(c.text.slice(0, 180))}</small></span></label>`).join("")}</fieldset>`;
 }
 function noteModal(suggestion) {
   if (!state.materials.length) {
@@ -260,6 +309,7 @@ function noteModal(suggestion) {
     suggestion ? "Editar conteúdo" : "Anotar com suas palavras",
     `<form id="note-form" data-id="${suggestion?.id || ""}" class="form-grid">
     <label class="field">Material de origem<select name="materialId">${state.materials.map((m) => `<option value="${escape(m.id)}" ${m.id === selected.id ? "selected" : ""}>${escape(m.title)}</option>`).join("")}</select></label>
+    ${referenceChoices(selected, suggestion?.references.map((r) => r.chunkId) || (selected.chunks.length === 1 ? [selected.chunks[0].id] : []))}
     <label class="field">Tipo<select name="type" id="note-type">${[
       ["summary", "Resumo"],
       ["topic", "Tópico"],
@@ -273,7 +323,7 @@ function noteModal(suggestion) {
     <label class="field">Título<input name="title" required maxlength="240" value="${escape(suggestion?.title || "")}"></label>
     <label class="field">Conteúdo<textarea name="content" required maxlength="10000">${escape(suggestion?.content || "")}</textarea></label>
     <label class="field" id="note-answer" ${suggestion?.type === "question" ? "" : "hidden"}>Resposta<textarea name="answer" maxlength="10000" ${suggestion?.type === "question" ? "required" : ""}>${escape(suggestion?.answer || "")}</textarea></label>
-    <p class="small muted">A anotação ficará pendente para sua conferência. Referências apontarão para os trechos do material selecionado. Nada será enviado a uma IA.</p>
+    <p class="small muted">A anotação ficará pendente para sua conferência. Referências apontarão apenas para os trechos selecionados. Nada será enviado a uma IA.</p>
     <button class="btn" type="submit">Salvar para conferir</button></form>`,
   );
 }
@@ -304,14 +354,27 @@ function generateModal() {
     `<form id="ai-form" class="form-grid"><label class="field">Material<select name="materialId">${state.materials.map((m) => `<option value="${escape(m.id)}">${escape(m.title)}</option>`).join("")}</select></label><div class="callout">O texto completo do material escolhido, seu título e referências serão enviados ao backend desta origem e ao serviço ${escape(integrationStatus.provider)} configurado pelo operador. Pode haver custo de API no plano configurado. Não envie materiais privados sem autorização.</div><label class="task-row"><input type="checkbox" name="consent" required><span>Tenho permissão para compartilhar este material e autorizo esse envio para gerar tópicos, resumo e perguntas.</span></label><p class="small muted" id="ai-progress" role="status"></p><button class="btn" type="submit">Enviar material e gerar</button></form>`,
   );
 }
+function reminderModal() {
+  modal(
+    "Levar revisões ao calendário",
+    `<form id="reminder-form" class="form-grid"><p>Baixe um arquivo ICS com suas tarefas pendentes. Nada é enviado nem conectado automaticamente. Importe o arquivo no calendário de sua escolha.</p><label class="task-row"><input type="checkbox" name="alarm"><span>Incluir lembrete 12 horas antes da data (opcional; depende do aplicativo de calendário).</span></label><p class="small muted">Datas são eventos de dia inteiro. Importar mais de uma vez pode duplicar eventos em alguns calendários.</p><button type="submit" class="btn">Baixar calendário</button></form>`,
+  );
+}
 const actions = {
+  "import-link": linkImportModal,
+  reminders: reminderModal,
   "add-material": addMaterial,
   "configure-ai": configureAi,
   generate: generateModal,
   "export-original": () =>
     downloadText(damagedBackup, "trilha-viva-dados-preservados.json"),
   "add-task": () => taskModal(),
-  close: () => document.getElementById("modal").close(),
+  close: () => {
+    ocrController?.abort();
+    ocrController = null;
+    ocrDraft = null;
+    document.getElementById("modal").close();
+  },
   "go-review": () => go("review"),
   "accept-review": () => reviewAction("accepted"),
   "discard-review": () => reviewAction("discarded"),
@@ -332,7 +395,10 @@ const actions = {
         if (f.size > 5 * 1024 * 1024)
           throw new Error("Arquivo maior que 5 MB.");
         const restored = importBackup(await f.text(), state);
-        state = restored;
+        state = recordHistory(restored, {
+          type: "backup-imported",
+          summary: "Backup importado com validação",
+        });
         save();
         shell();
         toast("Backup validado e importado.");
@@ -344,7 +410,11 @@ const actions = {
   },
 };
 function downloadText(content, name) {
-  const blob = new Blob([content], { type: "application/json" });
+  const blob = new Blob([content], {
+    type: name.endsWith(".ics")
+      ? "text/calendar;charset=utf-8"
+      : "application/json",
+  });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -378,6 +448,8 @@ document.addEventListener("click", (e) => {
     m = e.target.closest("[data-material]"),
     t = e.target.closest("[data-toggle-task]"),
     et = e.target.closest("[data-edit-task]");
+  const manager = e.target.closest("[data-manage-material]");
+  if (manager) manageMaterial(manager.dataset.manageMaterial);
   const filter = e.target.closest("[data-review-filter]");
   if (filter) {
     reviewFilter = filter.dataset.reviewFilter;
@@ -392,12 +464,24 @@ document.addEventListener("click", (e) => {
     const task = state.tasks.find((x) => x.id === t.dataset.toggleTask);
     if (task) {
       task.completed = !task.completed;
+      state = recordHistory(state, {
+        type: "task-updated",
+        entityId: task.id,
+        summary: task.completed ? "Tarefa concluída" : "Tarefa reaberta",
+      });
       save();
       shell();
     }
   }
 });
 document.addEventListener("change", (e) => {
+  if (e.target.matches('#note-form [name="materialId"]')) {
+    const material = state.materials.find((m) => m.id === e.target.value);
+    document.getElementById("reference-choices").outerHTML = referenceChoices(
+      material,
+      material.chunks.length === 1 ? [material.chunks[0].id] : [],
+    );
+  }
   if (e.target.id === "suggestion-select") {
     selectedSuggestion = e.target.value;
     shell();
@@ -413,6 +497,7 @@ document.addEventListener("change", (e) => {
     const pdf = e.target.value === "pdf";
     document.getElementById("text-field").hidden = pdf;
     document.getElementById("pdf-field").hidden = !pdf;
+    document.getElementById("ocr-option").hidden = !pdf;
     document.querySelector("[name=content]").required = !pdf;
     document.querySelector("[name=pdf]").required = pdf;
   }
@@ -420,6 +505,11 @@ document.addEventListener("change", (e) => {
     const t = state.tasks.find((t) => t.id === e.target.dataset.task);
     if (t) {
       t.completed = e.target.checked;
+      state = recordHistory(state, {
+        type: "task-updated",
+        entityId: t.id,
+        summary: t.completed ? "Tarefa concluída" : "Tarefa reaberta",
+      });
       save();
       shell();
     }
@@ -440,7 +530,55 @@ document.addEventListener("submit", async (e) => {
   const f = e.target;
   const data = Object.fromEntries(new FormData(f));
   try {
-    if (f.id === "ai-config-form") {
+    if (f.id === "ocr-review-form") {
+      if (!ocrDraft || !data.confirmed)
+        throw new Error("Confira o resultado antes de salvar.");
+      const material = createMaterial({
+        id: uid(),
+        title: ocrDraft.title,
+        sourceType: "pdf",
+        pages: ocrDraft.pages.map((p) => ({
+          page: p.page,
+          text: data["page-" + p.page],
+        })),
+      });
+      state.materials.push(material);
+      ocrDraft = null;
+      state = recordHistory(state, {
+        type: "material-added",
+        entityId: material.id,
+        summary: "PDF reconhecido e conferido adicionado",
+      });
+      toast("Texto OCR conferido salvo com suas páginas.");
+    } else if (f.id === "link-import-form") {
+      if (!data.consent) throw new Error("Confirme o acesso ao link.");
+      const submit = f.querySelector("[type=submit]");
+      submit.disabled = true;
+      let result;
+      try {
+        result = await requestLinkImport(data.url, operatorToken);
+      } finally {
+        submit.disabled = false;
+      }
+      modal(
+        "Confira o texto importado",
+        `<form id="material-form" class="form-grid"><input type="hidden" name="sourceType" value="text"><label class="field">Título<input name="title" required maxlength="240" value="Texto importado"></label><p>Fonte: ${escape(result.sourceUrl)}. Confira antes de salvar. A URL não é uma citação de página.</p><label class="field">Texto<textarea name="content" required maxlength="300000">${escape("Fonte: " + result.sourceUrl + "\n\n" + result.text)}</textarea></label><button class="btn" type="submit">Salvar texto conferido</button></form>`,
+      );
+      return;
+    } else if (f.id === "manage-material-form") {
+      state = renameMaterial(state, f.dataset.id, data.title);
+      toast("Título atualizado; referências preservadas.");
+    } else if (f.id === "delete-material-form") {
+      if (!data.confirmed) throw new Error("Confirme a exclusão.");
+      state = deleteMaterial(state, f.dataset.id, { cascade: true });
+      toast("Material e vínculos excluídos.");
+    } else if (f.id === "reminder-form") {
+      downloadText(
+        createReminderCalendar(state.tasks, { alarm: data.alarm === "on" }),
+        "trilha-viva-revisoes.ics",
+      );
+      toast("Calendário exportado. Nenhuma notificação foi ativada no site.");
+    } else if (f.id === "ai-config-form") {
       operatorToken = data.token.trim();
       toast("Token guardado somente nesta aba.");
     } else if (f.id === "ai-form") {
@@ -484,6 +622,27 @@ document.addEventListener("submit", async (e) => {
           if (!file) throw new Error("Selecione um PDF.");
           if (file.size > 10 * 1024 * 1024)
             throw new Error("PDF maior que 10 MB.");
+          if (data.ocr) {
+            ocrController = new AbortController();
+            const result = await recognizePdf(await file.arrayBuffer(), {
+              language: "por",
+              signal: ocrController.signal,
+              onProgress: (event) => {
+                const status = document.getElementById("import-progress");
+                if (status)
+                  status.textContent =
+                    "Reconhecendo texto localmente… " +
+                    (event.page ? "página " + event.page : "");
+              },
+            });
+            ocrController = null;
+            ocrDraft = { title: data.title, pages: result.pages };
+            modal(
+              "Confira o resultado do OCR",
+              `<form id="ocr-review-form" class="form-grid"><p>OCR pode errar. Confira e edite cada página antes de salvar. ${escape(result.warnings.join(" "))}</p>${result.pages.map((p) => `<label class="field">Página ${p.page}<textarea name="page-${p.page}" maxlength="100000">${escape(p.text)}</textarea></label>`).join("")}<label class="task-row"><input type="checkbox" required name="confirmed"><span>Conferi o texto reconhecido e quero salvá-lo.</span></label><button class="btn" type="submit">Salvar páginas conferidas</button></form>`,
+            );
+            return;
+          }
           const extracted = await extractPdf(await file.arrayBuffer(), {
             onProgress: ({ completed, total }) => {
               document.getElementById("import-progress").textContent =
@@ -516,6 +675,12 @@ document.addEventListener("submit", async (e) => {
       } finally {
         submit.disabled = false;
       }
+      const added = state.materials.at(-1);
+      state = recordHistory(state, {
+        type: "material-added",
+        entityId: added.id,
+        summary: "Material adicionado: " + added.title,
+      });
     } else if (f.id === "note-form") {
       const material = state.materials.find((m) => m.id === data.materialId);
       const note = validateSuggestion(
@@ -523,10 +688,12 @@ document.addEventListener("submit", async (e) => {
           ...data,
           id: f.dataset.id || uid(),
           status: "pending",
-          references: material.chunks.map((c) => ({
-            chunkId: c.id,
-            page: c.page,
-          })),
+          references: material.chunks
+            .filter((c) => new FormData(f).getAll("reference").includes(c.id))
+            .map((c) => ({
+              chunkId: c.id,
+              page: c.page,
+            })),
         },
         state.materials,
       );
@@ -535,6 +702,11 @@ document.addEventListener("submit", async (e) => {
           s.id === note.id ? note : s,
         );
       else state.suggestions.push(note);
+      state = recordHistory(state, {
+        type: "suggestion-created",
+        entityId: note.id,
+        summary: "Anotação salva para conferência",
+      });
       reviewFilter = "pending";
       selectedSuggestion = note.id;
       toast("Conteúdo salvo para conferência.");
@@ -552,6 +724,11 @@ document.addEventListener("submit", async (e) => {
       if (existing)
         state.tasks = state.tasks.map((t) => (t.id === task.id ? task : t));
       else state.tasks.push(task);
+      state = recordHistory(state, {
+        type: existing ? "task-updated" : "task-created",
+        entityId: task.id,
+        summary: existing ? "Tarefa atualizada" : "Tarefa criada",
+      });
       toast("Tarefa salva.");
     } else if (f.id === "review-form") {
       state = reviewSuggestion(state, f.dataset.id, {
@@ -573,4 +750,11 @@ shell();
 
 readIntegrationStatus().then((status) => {
   integrationStatus = status;
+});
+
+// Fechar com Escape também encerra o reconhecimento local.
+document.getElementById("modal").addEventListener("cancel", () => {
+  ocrController?.abort();
+  ocrController = null;
+  ocrDraft = null;
 });
