@@ -1,150 +1,198 @@
 # Trilha Viva
 
-Uma plataforma de estudos para reunir materiais, conferir referências, preparar revisões e acompanhar pequenos passos de aprendizado. A IA é uma ajuda opcional: **conteúdo sugerido precisa ser revisado por uma pessoa antes de ser aceito**.
+**Do material à compreensão: estudar, conferir, revisar e avançar.**
 
-A direção azul, a logo **B · Páginas** e os ícones foram aprovados pelo responsável pelo projeto. A identidade utiliza contraste, superfícies claras e luz discreta; não utiliza a marca do Hospital Einstein nem elementos do Intuição.
+Plataforma web de estudos que reúne materiais, organiza referências, apoia a revisão humana de conteúdo e acompanha tarefas. O projeto explora IA aplicada à aprendizagem sem confundir geração de texto com conhecimento verificado: uma resposta sugerida continua sendo uma hipótese até ser conferida na fonte.
 
-## O que funciona e o que depende de configuração
+[Repositório](https://github.com/luigiscofano/trilha-viva) · [Site no GitHub Pages](https://luigiscofano.github.io/trilha-viva/) · [Documentação](docs/README.md)
 
-| Recurso | Estado real |
+> **Estado desta documentação:** descreve a evolução em desenvolvimento e QA. Os PRs [#1](https://github.com/luigiscofano/trilha-viva/pull/1), [#2](https://github.com/luigiscofano/trilha-viva/pull/2), [#3](https://github.com/luigiscofano/trilha-viva/pull/3) e [#4](https://github.com/luigiscofano/trilha-viva/pull/4) foram integrados. A implantação do PR #4 está em andamento; a documentação complementar será organizada no PR #5. A presença de um recurso no código não prova que ele já está no site publicado.
+
+![Painel do Trilha Viva com identidade azul e materiais demonstrativos](docs/images/painel.jpg)
+
+## Objetivos acadêmicos e de produto
+
+- Transformar materiais autorizados em uma rotina de estudo organizada, sem remover o contato com a fonte original.
+- Estimular recuperação ativa: formular perguntas, tentar responder e conferir explicações.
+- Tornar a revisão crítica explícita: editar, aceitar ou descartar sugestões, em vez de salvar automaticamente tudo o que a IA produz.
+- Explorar engenharia de software, processamento de documentos, contratos de IA, automação, acessibilidade e privacidade em um projeto verificável.
+- Permitir uso local útil sem cadastro, serviço pago ou provedor de IA configurado.
+
+Não é um tutor infalível, certificador de aprendizagem ou substituto de orientação docente. O painel acompanha atividades registradas; não mede sozinho domínio de uma disciplina.
+
+## Funcionalidades e limites reais
+
+| Área | Implementação no código atual |
 |---|---|
-| Painel, biblioteca, revisão, plano e configurações | Implementados na aplicação local |
-| Entrada de texto e separação em trechos de origem | Implementadas |
-| PDF com texto: extração local e referências de página | Implementada com PDF.js; sem OCR |
-| PDF vazio, parcialmente legível ou excessivo | Erros/avisos e limites explícitos |
-| Tópicos, resumos e perguntas manuais | Cadastro com referências e revisão humana |
-| Sugestões: editar, aceitar, descartar e consultar histórico | Implementadas |
-| Plano: criar tarefa, editar material/data, concluir e reabrir | Implementado |
-| Persistência e backup exportável/importável | Implementados, com esquema e validação de conflitos |
-| Geração de IA | Cliente e backend opcionais implementados; **nenhum provedor real foi conectado ou chamado nesta entrega** |
-| n8n | Template inativo e guia de configuração; **não importado nem executado em uma instância** |
-| Make/Zapier | Alternativas documentadas para uma etapa pequena; **não configuradas nem utilizadas** |
-| v0/Bolt/Cursor | Uso sugerido e pontos de entrada documentados; **não utilizados nesta implementação** |
-| Links externos, OCR, contas e sincronização | Não implementados |
-| E-mails e notificações automáticas | Não enviados; não há automação ativada |
+| Painel e biblioteca | Materiais, progresso, tarefas e acesso às revisões |
+| Materiais | Texto colado, PDF local, renomeação e exclusão com tratamento explícito de dependências |
+| PDF textual | Extração local com PDF.js, trechos e páginas verificáveis; falhas e páginas vazias sinalizadas |
+| PDF digitalizado | OCR local opcional com Tesseract.js, validado em navegador com PDF sintético de duas páginas; resultado editável e confirmação humana antes de salvar |
+| Revisão | Tópicos, resumos e perguntas manuais ou recebidos da integração opcional; editar, aceitar, descartar e consultar fonte |
+| Plano | Tarefas com datas, vínculo ao material, conclusão e reabertura |
+| Calendário | Exportação manual ICS; alarme somente quando escolhido, sem envio automático |
+| Histórico | Eventos duráveis no schema v2, incluídos no backup; migração de v1 sem inventar atividades passadas |
+| Backup | Exportação/importação validada, união de registros e recusa de conflitos sem sobrescrita silenciosa |
+| IA | Cliente, contrato e backend opcionais; nenhum provedor real foi conectado ou chamado nesta entrega |
+| Links | Backend opcional restrito a `text/plain` UTF-8 em domínios autorizados, desabilitado por padrão |
+| Conta e sincronização | Não implementadas; armazenamento por navegador |
 
-Os materiais iniciais de ecologia, estatística e pensamento computacional são textos fictícios criados para a demonstração. As sugestões editoriais de exemplo não são apresentadas como resultados de uma chamada real de IA.
+Os materiais iniciais de ecologia, estatística e pensamento computacional são fictícios. As sugestões editoriais demonstrativas não são resultados de chamadas reais de IA.
 
-## Referências visuais aprovadas
+### Ferramentas: uso real, não vitrine
 
-Estas imagens registram a direção visual aprovada, não são comprovantes de execução de integrações externas:
+| Ferramenta | Uso nesta implementação |
+|---|---|
+| JavaScript, HTML e CSS | Aplicação e interface reais, sem framework de UI |
+| Node.js e `node:test` | Servidor opcional, build e testes locais |
+| PDF.js | Extração real de PDFs sintéticos nos testes e fluxo local |
+| Tesseract.js | Implementação de OCR local real; validado em navegador com duas páginas sintéticas, sem serviço remoto de OCR |
+| Git e GitHub | Repositório público, branches, PRs e workflow de qualidade/Pages |
+| n8n | Template inativo e instruções; não importado/executado em instância nesta entrega |
+| Make e Zapier | Alternativas documentadas para comparar uma pequena etapa; não configurados |
+| v0 e Bolt | Pontos de integração documentados; não usados para gerar esta interface |
+| Cursor | Não utilizado nesta execução; instruções de desenvolvimento reproduzíveis disponíveis |
 
-![Painel: referência visual azul aprovada](docs/previas/06-painel-azul.jpg)
+## Direção visual
 
-![Revisão com fonte ao lado: referência aprovada](docs/previas/07-revisao-azul.jpg)
+A direção azul e a logo **B · Páginas** foram aprovadas. A narrativa é de páginas que se organizam em um percurso de aprendizado: a fonte acompanha a revisão, o painel mostra o próximo passo e a ação principal recebe destaque sem disputar com o conteúdo.
 
-As primeiras imagens verdes em `docs/previas/01-*` a `05-*` são histórico de uma proposta rejeitada. Não representam o design adotado. A interface funcional está em `index.html`; arquivos `design-*.html` são pranchas históricas de comparação, com controles ilustrativos.
+Os tokens em `src/style.css` mantêm consistência:
 
-## Início rápido
+| Papel | Cor |
+|---|---|
+| Ação principal | Azul `#1769C7` |
+| Azul de apoio | `#104E97` |
+| Texto principal | Azul profundo `#152C49` |
+| Texto secundário | `#586E85` |
+| Fundo | `#F6F9FD` |
+| Superfície | Branco `#FFFFFF` |
+| Realce leve | `#EAF3FF` |
+| Divisórias | `#E0E9F3` |
 
-Requisitos: Node.js **22.13+ ou 24**, npm e navegador moderno com módulos JavaScript, Web Workers e armazenamento local. A versão 24 foi usada nos testes desta entrega.
+Tipografia **Manrope**, com fallback `system-ui`, superfícies claras, cantos moderados de 10 px e largura de conteúdo limitada. Animações são discretas e respeitam redução de movimento. A marca não reutiliza o Intuição nem a identidade de outras organizações.
+
+A Manrope é solicitada ao Google Fonts: isso gera uma conexão externa para fontes, não para materiais ou IA. Auto-hospedagem das fontes exige incluir os arquivos e a licença correspondente.
+
+## Instalação e execução
+
+Requisitos: Node.js 22.13+ ou 24, npm e navegador moderno. Node 24 foi usado no ambiente de desenvolvimento. OCR exige Web Workers e WebAssembly; documentos grandes podem pressionar memória e bateria, especialmente no celular.
 
 ```sh
+git clone https://github.com/luigiscofano/trilha-viva.git
+cd trilha-viva
 npm ci
 npm run dev
-# abrir http://127.0.0.1:4173
+# http://127.0.0.1:4173
 ```
-
-O servidor de desenvolvimento serve o frontend. Se não existir backend nessa origem, a aplicação informa IA não configurada; materiais, revisões manuais, tarefas e backups continuam funcionando.
 
 ```sh
 npm test        # testes automatizados
-npm run check  # verificação sintática configurada no projeto
-npm run build  # produz dist/ para hospedagem estática
+npm run check  # verificações sintáticas configuradas
+npm run build  # prepara bibliotecas locais e produz dist/
 ```
 
-Em ambiente gerenciado com serviço próprio de prévia, utilize o comando de prévia da plataforma em vez de iniciar servidores concorrentes.
+Em ambientes gerenciados com serviço próprio de prévia, utilize o comando de prévia da plataforma, evitando servidores concorrentes.
 
-### Frontend e backend opcional na mesma origem
+### Backend opcional
 
 ```sh
 npm run build
 npm start
-# abrir http://127.0.0.1:8787
+# http://127.0.0.1:8787
 ```
 
-Por padrão o backend permanece desativado para IA (`AI_PROVIDER=unconfigured`). Ele atende a interface construída e as rotas `/api/status` e `/api/study`, sem chamar serviços externos.
+Por padrão, a IA continua indisponível (`AI_PROVIDER=unconfigured`). O frontend local funciona normalmente. Para configurar posteriormente:
 
-Para configurar posteriormente, copie `.env.example` para um arquivo privado `.env`, preencha apenas após autorização de credenciais/custos e execute:
+1. Leia [backend](docs/backend.md) e [integrações](docs/integracoes.md).
+2. Copie `.env.example` para `.env` privado.
+3. Escolha e autorize serviços, credenciais, retenção de dados e custos antes de habilitá-los.
+4. Execute `node --env-file=.env server/study-server.mjs`.
 
-```sh
-node --env-file=.env server/study-server.mjs
-```
+`npm start` lê variáveis exportadas no ambiente, mas não carrega `.env` automaticamente. Nunca inclua chaves no frontend ou no repositório. **GitHub Pages não executa esse backend.** O servidor é uma base pessoal/local, não um serviço multiusuário pronto para exposição pública.
 
-`npm start` não carrega `.env` automaticamente: ele lê as variáveis já exportadas no ambiente. O comando acima carrega o arquivo explicitamente. Nunca publique `.env` ou coloque chaves do provedor no frontend.
+## Fluxo de uso
 
-**Leia [docs/backend.md](docs/backend.md) antes de habilitar IA.** O servidor fornecido é pessoal/local, não uma infraestrutura multiusuário pronta para publicação. GitHub Pages não executa esse backend nem armazena segredos.
+1. Adicione texto autorizado ou PDF em **Materiais**; confira os trechos e suas páginas.
+2. Para digitalizados, escolha OCR local; revise o texto reconhecido antes de salvá-lo. OCR não é compreensão semântica e pode errar.
+3. Crie tópicos, resumos e perguntas manualmente, ou use a integração de IA somente após configuração e confirmação do envio.
+4. Compare as sugestões com os trechos de origem. Edite, aceite ou descarte: referência existente não comprova a resposta.
+5. Organize as revisões no plano. Opcionalmente exporte ICS, com ou sem alarme escolhido por você.
+6. Consulte o histórico e exporte regularmente um backup privado.
 
-## Como usar
-
-1. Em **Materiais**, adicione um texto autorizado ou um PDF legível. Confira os trechos e páginas extraídos.
-2. Em **Revisões**, crie uma anotação manual, resumo ou pergunta com referência ao material. Exemplos editoriais permitem conhecer o fluxo sem usar IA.
-3. Se houver backend autorizado, configure o token de operador da sessão em **Dados e integrações**. Nunca cole ali uma chave de API do provedor.
-4. Ao gerar com IA, selecione um material e confirme o envio. O texto, título e referências do material escolhido serão transmitidos ao backend da mesma origem e ao provedor configurado, passando pelo n8n quando esse modo estiver habilitado.
-5. Compare cada sugestão com sua fonte; edite, aceite ou descarte. Referência válida não garante conclusão correta.
-6. Organize datas e tarefas em **Plano de estudos**. Nenhum e-mail ou notificação é enviado.
-7. Exporte regularmente um backup em **Dados e integrações**.
+Renomear um material mantém IDs e referências. Excluir uma fonte vinculada exige compreender e confirmar a exclusão conjunta das sugestões/tarefas relacionadas; não deixa citações órfãs silenciosamente.
 
 ## Arquitetura
 
-```text
-Navegador
- ├─ materiais, PDF.js local, trechos e referências
- ├─ revisão humana, plano, progresso e backup
- └─ envio explícito opcional → API da mesma origem
-                               ├─ validação, autenticação e limites
-                               ├─ n8n autorizado → provedor de IA
-                               └─ ou provedor configurado diretamente
+```mermaid
+flowchart LR
+  U[Estudante] --> UI[Interface HTML/CSS/JavaScript]
+  UI --> CORE[Núcleo: schema e validações]
+  CORE <--> LOCAL[localStorage e backup JSON]
+  UI --> PDF[PDF.js local]
+  PDF --> REF[Trechos e páginas]
+  UI --> OCR[Tesseract.js local opcional]
+  OCR --> HUMAN[Revisão humana do texto]
+  HUMAN --> REF
+  REF --> CORE
+  UI -->|Confirmação explícita| API[Backend opcional]
+  API -->|Configuração autorizada| N8N[n8n ou provedor IA]
+  N8N --> CONTRACT[Contrato validado]
+  CONTRACT --> REVIEW[Editar / aceitar / descartar]
+  REVIEW --> CORE
 ```
 
-| Arquivo/pasta | Responsabilidade |
+```mermaid
+flowchart LR
+  V1[Backup schema v1] --> VALID[Validar tipos IDs e fontes]
+  V2[Backup schema v2] --> VALID
+  VALID --> MERGE[Mesclar sem sobrescrever conflitos]
+  MERGE --> STATE[Materiais + sugestões + tarefas + histórico]
+  STATE --> EXPORT[Backup schema v2]
+```
+
+| Pasta/módulo | Responsabilidade |
 |---|---|
-| `src/core.mjs` | Funções puras, esquema versionado, materiais, referências, revisão, tarefas e backups |
-| `src/app.mjs` | Orquestração da interface e interações |
-| `src/ui-helpers.mjs` | Ícones, escaping e utilidades de apresentação |
-| `src/brand.mjs` | Identidade visual aprovada e ilustração de aprendizado |
-| `src/demo.mjs` | Dados fictícios da demonstração |
-| `src/style.css` | Tokens azuis, componentes e responsividade |
-| `src/pdf.mjs` | Extração local limitada, avisos e cancelamento |
-| `src/ai-client.mjs` | Estado da integração e chamadas autorizadas da sessão |
-| `src/ai-contract.mjs` | Contrato e validação das sugestões recebidas |
-| `server/study-server.mjs` | Backend opcional, arquivos estáticos e proteção das chamadas |
-| `integrations/n8n/` | Template inativo e instruções; não equivale a execução real |
-| `tests/` | Testes Node do núcleo, PDF, cliente, contrato e servidor |
-| `scripts/` | Preparação de dependências locais e build |
-| `docs/` | Integrações, PDF, backend, limites e evidências de validação |
+| [`src/`](src/README.md) | Interface, núcleo, referências, PDF/OCR, IA e calendário |
+| [`server/`](server/README.md) | API opcional, autenticação, limites e importação restrita |
+| [`tests/`](tests/README.md) | Testes de domínio, contratos, arquivos e servidor |
+| [`integrations/`](integrations/README.md) | Templates e instruções, separados de uso real |
+| [`scripts/`](scripts/README.md) | Build e preparação de dependências |
+| [`assets/`](assets/README.md) | Referências de marca autorizadas |
+| [`docs/`](docs/README.md) | Decisões, configuração, limites e evidências |
 
-PDF.js e seus recursos são copiados da dependência instalada para `vendor/`, junto da licença, durante preparo/build. Não há CDN de PDF nem envio automático do arquivo. A tipografia solicita **Manrope ao Google Fonts**, com fallback do sistema; isso é uma conexão externa para fontes, não para documentos ou IA. Hospedagem local de fontes pode ser adotada em uma etapa posterior, com os arquivos e licença correspondentes.
+## Dados, histórico e privacidade
 
-## Dados, privacidade e backup
+Materiais, sugestões, tarefas e histórico ficam no navegador. A chave legada `trilha-viva-preview-v1` permanece para não descartar dados existentes; o conteúdo evolui para **schema 2**. Backups v1 continuam aceitos e recebem histórico vazio, sem reconstruir eventos que nunca foram registrados.
 
-Materiais, sugestões e tarefas ficam em `localStorage`, sob a chave legada `trilha-viva-preview-v1`. A chave foi preservada para não descartar dados de testes anteriores. Não há conta, sincronização ou promessa de armazenamento inviolável. Limpar o navegador, mudar de aparelho ou usar modo privado pode causar perda de acesso ao progresso. Dados da mesma origem podem ser lidos pelo código dessa origem; não é um cofre para documentos sensíveis.
+Limpar dados do navegador, usar modo privado ou trocar de aparelho pode causar perda de acesso. Não há sincronização, conta, cofre criptografado ou garantia de integridade contra alterações locais.
 
-O backup JSON contém textos completos. Exporte-o antes de limpar o navegador e guarde-o em local privado. Para restaurar, use **Importar arquivo** em Dados e integrações. A importação valida versão, tipos, IDs e referências; registros novos são mesclados e conflitos não são sobrescritos silenciosamente. Se os dados locais estiverem corrompidos, a aplicação bloqueia a sobrescrita e oferece a cópia original para recuperação.
+O backup JSON inclui textos completos. Guarde-o privadamente. A importação valida versão, tipos, IDs, relações e conflitos. Dados locais corrompidos devem ser exportados para recuperação, não sobrescritos automaticamente. Histórico registra ações, não é trilha de auditoria inviolável.
 
-Tokens de operador ficam apenas na memória da aba, não no backup ou armazenamento local. A chave de IA e o segredo backend→n8n ficam somente no servidor/instância autorizada. O backend não grava documentos, respostas ou segredos em logs; a infraestrutura e o provedor podem possuir políticas próprias de retenção, que precisam ser revisadas antes de usar dados privados.
+PDF e OCR são locais. Enviar um material à IA é outra etapa: título, trechos e referências selecionados passam ao backend e provedor configurado, via n8n quando habilitado. O token de operador da sessão não é a chave de API; fica na memória da aba, fora dos backups. A política do provedor/infraestrutura precisa ser revista antes de materiais privados.
 
-## IA, custos e ferramentas
+## Desafios e decisões de engenharia
 
-Nenhuma chamada real de IA, contratação ou pagamento foi efetuado para esta entrega. Ativar um provedor pode gerar cobrança. Antes disso, confira o modelo/plano, preços, limites de gasto, retenção e autorização do responsável. O limite técnico de chamadas da API não equivale a um teto financeiro garantido.
+- **Fonte verificável:** páginas e trechos reais em vez de citações inventadas. Validação estrutural não substitui leitura crítica.
+- **PDF não é texto uniforme:** colunas, fórmulas e tabelas podem perder ordem; digitalizados precisam de OCR e conferência.
+- **OCR custa recursos:** modelo e worker locais aumentam download, memória e tempo. Limites e cancelamento evitam tratar esse custo como instantâneo.
+- **Evolução sem apagar progresso:** migração schema v1 → v2, importação atômica e conflitos explícitos.
+- **IA opcional e protegida:** estados de indisponibilidade são funcionalidades reais; não se publica um segredo para fazer uma demo parecer integrada.
+- **Links e SSRF:** a importação não é um crawler genérico; restringe destinos e tipos, não contorna login ou permissões.
+- **Responsividade:** hierarquia e leitura de fontes precisam sobreviver a telas estreitas, não apenas diminuir a página desktop.
 
-- [Guia das ferramentas e comparativos](docs/integracoes.md): distingue utilização real de preparação.
-- [API, autenticação e configuração](docs/backend.md): todas as variáveis e limitações de publicação.
-- [n8n: importação e credenciais](integrations/n8n/README.md): template inativo, sem segredos ou evidência falsa de execução.
-- [Extração de PDF](docs/pdf.md): limites, páginas e ausência de OCR.
+## Qualidade e validação
 
-Make e Zapier não são dependências artificiais do produto: o plano é comparar uma mesma etapa opcional em ambientes de teste, sem duplicar fluxos em produção. v0 e Bolt podem fornecer propostas comparáveis; Cursor pode apoiar revisão/desenvolvimento, quando houver acesso real. Nenhum desses nomes é usado como alegação de experiência desta execução.
+As suítes verificam núcleo, migração/histórico, referências, PDFs sintéticos com PDF.js real, OCR, calendário ICS, contrato/cliente de IA e servidor. Parte dos testes usa mocks controlados; eles não comprovam acesso a provedores ou serviços externos. Consulte [registro de validação](docs/validacao.md) para separar execuções anteriores da etapa atual.
 
-## Qualidade, acessibilidade e limites
+Teclado, foco, rótulos, regiões de status, modais nativos e redução de movimento fazem parte da implementação. Não declaramos conformidade WCAG completa nem compatibilidade testada em todos os aparelhos. O PR #4 passou no CI com 70 testes. O OCR real foi validado no navegador com duas páginas sintéticas reconhecidas e salvas. Isso não substitui testes com documentos complexos ou aparelhos diversos; a implantação ainda está em andamento.
 
-Foram executados **41 testes automatizados** nesta etapa. São testes do núcleo, PDF sintético real com PDF.js, contrato/cliente de IA e backend com mocks locais. Testes de mock não provam conectividade com serviços externos. A verificação final de UI e publicação deve registrar suas próprias evidências em [docs/validacao.md](docs/validacao.md).
+## Publicação e manutenção
 
-A interface prepara navegação por teclado, rótulos, foco visível, regiões de status e preferência por movimento reduzido. Não é uma declaração de conformidade WCAG nem de teste em todos os aparelhos. A extração de PDF não interpreta imagens e pode precisar de conferência em documentos complexos. Não há importação de links, pois acesso, permissões, CORS e segurança ainda precisam de implementação específica.
+O workflow de GitHub Actions executa testes, sintaxe e build antes de publicar `dist/` no Pages. O resultado da execução/deployment é a evidência de publicação. Não deduza versão em produção apenas por este README.
 
-## GitHub e implantação
+PRs [#1](https://github.com/luigiscofano/trilha-viva/pull/1), [#2](https://github.com/luigiscofano/trilha-viva/pull/2), [#3](https://github.com/luigiscofano/trilha-viva/pull/3) e [#4](https://github.com/luigiscofano/trilha-viva/pull/4): integrados. O PR #5 organizará esta documentação complementar. As frentes temáticas incluem: evolução do núcleo/histórico, OCR, calendário, importação e documentação, conforme implementação e revisão reais. Não criar commits vazios ou PRs fictícios para aumentar o histórico.
 
-O repositório público deve conter somente código, dados fictícios e documentos higienizados. `node_modules/`, `vendor/`, `dist/`, `.env` e logs estão ignorados; a dependência e os recursos de distribuição são reconstruídos com `npm ci` e `npm run build`.
+`node_modules`, `vendor`, `dist`, arquivos de ambiente e logs não pertencem ao código-fonte versionado. Dependências são reconstruídas por `npm ci` e build, com respectivas licenças. Nunca publique materiais privados, backups pessoais ou capturas contendo dados reais.
 
-Branches/PRs devem representar mudanças reais e ser integrados após testes: base local, interface aprovada, PDF/referências, backend opcional, documentação e implantação. Não inventar PRs ou integrações apenas para aumentar o histórico. A lista e os links dos PRs efetivamente criados devem ser verificados no GitHub, não inferidos das propostas anteriores.
-
-Para hospedagem estática, publique o conteúdo de `dist/`. Os recursos locais funcionam; IA continuará indisponível sem backend seguro na mesma origem. Para habilitar backend público, planeje separadamente autenticação multiusuário, isolamento de dados, segredos, HTTPS e orçamento por usuário. Não publique um token de operador compartilhado dentro da página.
+Antes de exposição pública do backend: HTTPS, autenticação multiusuário, isolamento, proteção contra abuso, retenção de dados e orçamento por usuário exigem uma etapa separada. Não houve contratação ou chamada paga nesta entrega; consulte preços atuais antes de ativar serviços.

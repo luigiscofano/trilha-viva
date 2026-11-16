@@ -60,3 +60,7 @@ Uma publicação multiusuário exige autenticação real, sessões, autorizaçã
 ## Testes
 
 `node --test tests/server.test.mjs` usa somente servidor loopback e `fetchImpl` simulado. Verifica estado ausente, configuração, origem, token, conteúdo, tamanho, limite de requisições, timeout, segredo não exposto, resposta n8n e resposta OpenAI simuladas, recusa de página inventada e status. Não é evidência de execução em serviços externos.
+
+## Importação restrita de texto por URL
+
+A rota opcional `POST /api/import-link` utiliza a mesma origem, token e limites da API. É independente do provedor IA, desabilitada por padrão e ainda sem controle na interface. Aceita apenas texto público UTF-8 de domínios explicitamente autorizados; não HTML/PDF remoto. Detalhes, consentimento, DNS/IP fixado e limitações de segurança em [importacao-links.md](importacao-links.md).
