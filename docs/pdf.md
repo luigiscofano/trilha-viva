@@ -38,3 +38,13 @@ Materiais privados não devem ser publicados no repositório ou usados em captur
 A suíte verifica extração e páginas, progresso, arquivo original preservado, documento sem texto, páginas mistas, entradas inválidas e limites de bytes/páginas/caracteres. Apenas o teste de timeout usa um motor controlado que não termina, para verificar deterministicamente o cancelamento e a liberação de recursos.
 
 Os testes em Node não substituem a inspeção do worker e da interface no navegador e não constituem auditoria de segurança do PDF.js.
+
+## Evolução atual: OCR local opcional
+
+A ausência de OCR descrita acima refere-se ao módulo de **extração textual** `pdf.mjs`, que continua sem reconhecer imagens. A etapa atual adiciona `src/ocr.mjs`, separado, usando Tesseract.js real com workers e WebAssembly locais. Não é um serviço remoto nem uma simulação de texto.
+
+No cadastro de PDF, a opção de OCR é explícita. O texto reconhecido por página é exibido para edição e confirmação antes de salvar o material. A biblioteca suporta português, inglês e combinação; a interface atual usa português. Modelos, motor e worker são distribuídos localmente pelo build, sem fallback para CDN.
+
+Limites definidos no módulo: PDF de até 10 MB/100 páginas estruturais, até 8 páginas por leitura OCR, até 4 milhões de pixels por página, até 100 mil caracteres e timeout de 120 segundos. O custo de carregamento dos modelos, CPU, memória e bateria é maior que na extração textual. Não há garantia de bom reconhecimento de manuscritos, fórmulas, tabelas ou imagens ruins.
+
+Cancelamento deve encerrar os workers e não salvar resultados parciais como material definitivo. Uma página reconhecida continua exigindo conferência; o OCR não certifica a correção de palavras ou referências. O fluxo real foi validado no navegador com duas páginas sintéticas reconhecidas e salvas. O PR #4 está integrado e o deployment está em andamento; não anunciar publicação concluída antes de verificá-lo.
