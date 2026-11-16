@@ -215,3 +215,47 @@ test("API import-link independente de IA exige token e origem", async () => {
     await new Promise((resolve) => server.close(resolve));
   }
 });
+
+test("DNS com falha retorna erro genérico sem vazar detalhes", async () => {
+  await assert.rejects(
+    importTextLink(body, {
+      ...options,
+      resolver: () => {
+        throw Error("private resolver details");
+      },
+    }),
+    (error) =>
+      error.code === "LINK_UNAVAILABLE" && !error.message.includes("private"),
+  );
+});
+test("timeout aborta download pendente e MIME malformado não passa", async () => {
+  let aborted = false;
+  await assert.rejects(
+    importTextLink(body, {
+      ...options,
+      timeoutMs: 5,
+      requestImpl: (_url, opts) => {
+        const req = new EventEmitter();
+        req.end = () => {};
+        opts.signal.addEventListener(
+          "abort",
+          () => {
+            aborted = true;
+            req.emit("error", Error("aborted"));
+          },
+          { once: true },
+        );
+        return req;
+      },
+    }),
+    { code: "LINK_TIMEOUT" },
+  );
+  assert.equal(aborted, true);
+  await assert.rejects(
+    importTextLink(body, {
+      ...options,
+      requestImpl: mockResponse({ type: 'text/plain; charset="utf-8' }),
+    }),
+    { code: "LINK_UNSUPPORTED_TYPE" },
+  );
+});

@@ -48,3 +48,7 @@ Isso não é garantia absoluta contra SSRF em toda infraestrutura. Um servidor c
 ## Testes
 
 `node --test tests/server-link.test.mjs`: allowlist, URLs inválidas, redes privadas, DNS misto, IP fixado, consentimento, redirects, MIME/compressão, tamanho, UTF-8 inválido, timeout DNS e autenticação da rota. Mocks não substituem teste end-to-end em hospedagem real nem auditoria de segurança externa.
+
+### Casos adicionais de robustez
+
+A suíte verifica falha de DNS sem vazamento da mensagem interna, interrupção de download pelo timeout e rejeição de charset com aspas malformadas. O timeout cobre tanto a resolução quanto a transferência; respostas DNS que chegam depois do prazo não iniciam conexão. Nenhum desses testes acessa uma fonte externa real.

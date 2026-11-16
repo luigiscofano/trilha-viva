@@ -6,7 +6,7 @@ Plataforma web de estudos que reúne materiais, organiza referências, apoia a r
 
 [Repositório](https://github.com/luigiscofano/trilha-viva) · [Site no GitHub Pages](https://luigiscofano.github.io/trilha-viva/) · [Documentação](docs/README.md)
 
-> **Estado verificado:** PRs #1–#5 integrados e frontend publicado. Materiais, OCR local, revisão, plano, histórico e backup funcionam sem cadastro. IA, importação segura de links via servidor e automações externas dependem de configuração; não estão ativadas no GitHub Pages. Contas e sincronização ainda não foram implementadas.
+> **Estado verificado:** PRs #1–#6 integrados e frontend publicado. Materiais, OCR local, revisão, plano, histórico e backup funcionam sem cadastro. IA, importação segura de links via servidor e automações externas dependem de configuração; não estão ativadas no GitHub Pages. Contas e sincronização ainda não foram implementadas.
 
 ![Painel do Trilha Viva com identidade azul e materiais demonstrativos](docs/images/painel.jpg)
 
@@ -200,7 +200,7 @@ Teclado, foco, rótulos, regiões de status, modais nativos e redução de movim
 
 O workflow de GitHub Actions executa testes, sintaxe e build antes de publicar `dist/` no Pages. O resultado da execução/deployment é a evidência de publicação. Não deduza versão em produção apenas por este README.
 
-PRs [#1](https://github.com/luigiscofano/trilha-viva/pull/1), [#2](https://github.com/luigiscofano/trilha-viva/pull/2), [#3](https://github.com/luigiscofano/trilha-viva/pull/3) e [#4](https://github.com/luigiscofano/trilha-viva/pull/4): integrados. O PR #5 organizará esta documentação complementar. As frentes temáticas incluem: evolução do núcleo/histórico, OCR, calendário, importação e documentação, conforme implementação e revisão reais. Não criar commits vazios ou PRs fictícios para aumentar o histórico.
+PRs [#1](https://github.com/luigiscofano/trilha-viva/pull/1), [#2](https://github.com/luigiscofano/trilha-viva/pull/2), [#3](https://github.com/luigiscofano/trilha-viva/pull/3) e [#4](https://github.com/luigiscofano/trilha-viva/pull/4): integrados. Os PRs #5 e #6 integraram a documentação complementar, sua apresentação principal e a tipografia aprovada. As frentes temáticas incluem: evolução do núcleo/histórico, OCR, calendário, importação e documentação, conforme implementação e revisão reais. Não criar commits vazios ou PRs fictícios para aumentar o histórico.
 
 `node_modules`, `vendor`, `dist`, arquivos de ambiente e logs não pertencem ao código-fonte versionado. Dependências são reconstruídas por `npm ci` e build, com respectivas licenças. Nunca publique materiais privados, backups pessoais ou capturas contendo dados reais.
 

@@ -277,3 +277,159 @@ test("revisão grava evento e eventos inválidos ou conflitantes não entram", (
   const other = recordHistory(s, { ...event, summary: "B" });
   assert.throws(() => importBackup(exportBackup(other), one), /Conflito/);
 });
+
+test("referência não pode trocar fonte por trecho de outro material", () => {
+  const other = createMaterial({
+    id: "other",
+    title: "Outra fonte",
+    content: "Texto igual não torna as fontes intercambiáveis.",
+  });
+  assert.throws(
+    () =>
+      validateSuggestion(
+        {
+          ...suggestion(),
+          references: [{ chunkId: other.chunks[0].id, page: null }],
+        },
+        [material(), other],
+      ),
+    /não existe no material/,
+  );
+});
+
+test("página omitida é recuperada do trecho, mas tipo incorreto nunca é aceito", () => {
+  const good = validateSuggestion(
+    { ...suggestion(), references: [{ chunkId: "mat-1-trecho-2" }] },
+    [material()],
+  );
+  assert.equal(good.references[0].page, 2);
+  assert.throws(
+    () =>
+      validateSuggestion(
+        {
+          ...suggestion(),
+          references: [{ chunkId: "mat-1-trecho-2", page: "2" }],
+        },
+        [material()],
+      ),
+    /não corresponde/,
+  );
+});
+
+test("backup inválido em qualquer parte preserva integralmente estado existente", () => {
+  const current = state();
+  const before = JSON.stringify(current);
+  const bad = state();
+  bad.tasks = [
+    {
+      id: "t",
+      title: "T",
+      dueDate: "2026-01-01",
+      materialId: "ausente",
+      completed: false,
+    },
+  ];
+  assert.throws(() => importBackup(JSON.stringify(bad), current));
+  assert.equal(JSON.stringify(current), before);
+  bad.tasks = [];
+  bad.suggestions = [suggestion()];
+  bad.suggestions[0].references[0].page = 999;
+  assert.throws(() => importBackup(JSON.stringify(bad), current));
+  assert.equal(JSON.stringify(current), before);
+});
+
+test("importação retornada não compartilha objetos mutáveis com estado anterior", () => {
+  const current = state();
+  const restored = importBackup(exportBackup(current), current);
+  restored.materials[0].chunks[0].text = "Alterado depois";
+  assert.equal(
+    current.materials[0].chunks[0].text,
+    "A água evapora com calor.",
+  );
+});
+
+test("campos de protótipo em JSON não contaminam objetos da aplicação", () => {
+  const input = JSON.parse(exportBackup(state()));
+  Object.defineProperty(input, "__proto__", {
+    value: { polluted: true },
+    enumerable: true,
+  });
+  input.materials[0].constructor = { prototype: { polluted: true } };
+  const restored = importBackup(JSON.stringify(input));
+  assert.equal(Object.prototype.polluted, undefined);
+  assert.equal(Object.hasOwn(restored, "__proto__"), false);
+  assert.equal(Object.hasOwn(restored.materials[0], "constructor"), false);
+});
+
+test("mesclagem de backups que excede limite exportável aborta sem mutação", () => {
+  const largeState = (prefix) => ({
+    ...createEmptyState(),
+    materials: Array.from({ length: 9 }, (_, i) =>
+      createMaterial({
+        id: `${prefix}-${i}`,
+        title: `Material ${i}`,
+        content: "x".repeat(299_000),
+      }),
+    ),
+  });
+  const current = largeState("a");
+  const incoming = largeState("b");
+  const before = exportBackup(current);
+  const payload = exportBackup(incoming);
+  assert.throws(() => importBackup(payload, current), /Backup excede/);
+  assert.equal(exportBackup(current), before);
+});
+
+test("limite de registros é aplicado na união e não descarta itens antigos", () => {
+  const current = createEmptyState();
+  current.tasks = Array.from({ length: 5000 }, (_, i) =>
+    createTask({ id: `task-${i}`, title: "T", dueDate: "2026-01-01" }),
+  );
+  const incoming = createEmptyState();
+  incoming.tasks = [
+    createTask({ id: "extra", title: "Extra", dueDate: "2026-01-01" }),
+  ];
+  assert.throws(
+    () => importBackup(exportBackup(incoming), current),
+    /Lista inválida/,
+  );
+  assert.equal(current.tasks.length, 5000);
+});
+
+test("identificador longo não gera material impossível de exportar", () => {
+  assert.throws(
+    () => createMaterial({ id: "m".repeat(120), title: "T", content: "Fonte" }),
+    /muito longo/,
+  );
+  const valid = createMaterial({
+    id: "m".repeat(100),
+    title: "T",
+    content: "Fonte",
+  });
+  assert.deepEqual(
+    importBackup(exportBackup({ ...createEmptyState(), materials: [valid] }))
+      .materials[0],
+    valid,
+  );
+});
+
+test("divisão de texto não corta emoji no limite entre trechos", () => {
+  const content = "a".repeat(1799) + "🌿" + "b".repeat(20);
+  const m = createMaterial({ id: "unicode", title: "Fonte", content });
+  assert.equal(m.chunks.map((c) => c.text).join(""), content);
+  assert.equal(m.chunks[0].text.length, 1799);
+  assert.ok(m.chunks[1].text.startsWith("🌿"));
+});
+
+test("referência e estado aceito permanecem iguais após ciclos repetidos de backup", () => {
+  let current = state();
+  current.suggestions = [
+    validateSuggestion(
+      { ...suggestion(), status: "accepted" },
+      current.materials,
+    ),
+  ];
+  const original = structuredClone(current);
+  for (let i = 0; i < 5; i++) current = importBackup(exportBackup(current));
+  assert.deepEqual(current, original);
+});

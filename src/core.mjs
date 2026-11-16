@@ -35,7 +35,6 @@ const unique = (items) => {
     throw new Error("Identificadores duplicados.");
   return items;
 };
-const clone = (value) => JSON.parse(JSON.stringify(value));
 export function createEmptyState() {
   return {
     schemaVersion: SCHEMA_VERSION,
@@ -56,6 +55,9 @@ export function createMaterial({
   createdAt = new Date().toISOString(),
 }) {
   const safeId = id(materialId);
+  // Reserva espaço para o sufixo dos trechos, também validado no backup.
+  if (safeId.length > 100)
+    throw new Error("Identificador do material muito longo.");
   if (!["text", "pdf"].includes(sourceType))
     throw new Error("Tipo de material não suportado.");
   const sourcePages = pages ?? [{ page: null, text: content }];
@@ -80,6 +82,10 @@ export function createMaterial({
         const boundary = rest.lastIndexOf(" ", end);
         if (boundary > end / 2) end = boundary;
       }
+      // Não separe o par UTF-16 de um caractere, como um emoji, entre trechos.
+      const lastCodeUnit = rest.charCodeAt(end - 1);
+      if (end < rest.length && lastCodeUnit >= 0xd800 && lastCodeUnit <= 0xdbff)
+        end -= 1;
       chunks.push({
         id: `${safeId}-trecho-${chunks.length + 1}`,
         materialId: safeId,
@@ -287,7 +293,9 @@ export function importBackup(serialized, current = createEmptyState()) {
     }
     merged[key] = [...byId.values()];
   }
-  return clone(validateState(merged));
+  // Dois backups válidos podem exceder juntos o limite de uma exportação.
+  // Recuse a união antes de devolvê-la: o estado deve continuar recuperável.
+  return JSON.parse(exportBackup(merged));
 }
 
 export function getProgress(

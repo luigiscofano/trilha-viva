@@ -2,7 +2,7 @@ import http from "node:http";
 import { timingSafeEqual } from "node:crypto";
 import { pathToFileURL } from "node:url";
 import path from "node:path";
-import { readFile } from "node:fs/promises";
+import { readFile, realpath } from "node:fs/promises";
 import { validateStudyResponse } from "../src/ai-contract.mjs";
 
 import {
@@ -257,6 +257,7 @@ export function createStudyServer({
   let inFlight = 0;
   const server = http.createServer(async (request, response) => {
     const send = (status, body, extra = {}) => {
+      if (response.destroyed || response.writableEnded) return;
       response.writeHead(status, {
         "Content-Type": "application/json; charset=utf-8",
         "Cache-Control": "no-store",
@@ -300,12 +301,26 @@ export function createStudyServer({
         if (
           !file.startsWith(config.staticDirectory + path.sep) ||
           !types[path.extname(file)] ||
-          path.basename(file).startsWith(".")
+          path
+            .relative(config.staticDirectory, file)
+            .split(path.sep)
+            .some((part) => part.startsWith("."))
         )
           throw new HttpError(404, "NOT_FOUND", "Arquivo não encontrado.");
         let body;
         try {
-          body = await readFile(file);
+          // Verifica o destino real: um link simbólico no build não pode expor arquivos externos.
+          const root = await realpath(config.staticDirectory);
+          const resolved = await realpath(file);
+          const relative = path.relative(root, resolved);
+          if (
+            !resolved.startsWith(root + path.sep) ||
+            relative.split(path.sep).some((part) => part.startsWith(".")) ||
+            path.extname(resolved) !== path.extname(file)
+          ) {
+            throw new Error("Destino fora do build público.");
+          }
+          body = await readFile(resolved);
         } catch {
           throw new HttpError(
             404,

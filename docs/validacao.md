@@ -40,3 +40,7 @@ A segurança de links foi exercitada com mocks/endereços sintéticos. Nenhum do
 ## Tipografia A e apresentação do repositório
 
 72 testes locais passam. Build e sintaxe passam. Chromium: Manrope nos títulos, DM Sans em corpo e botões; biblioteca navegável a 390px e desktop sem overflow horizontal. Não é auditoria de todos os navegadores. O GitHub priorizava .github/README.md. Guia preservado em .github/AUTOMACAO.md para mostrar README raiz. A lista nativa de arquivos continua acima dele.
+
+## Robustez adicional
+
+86 testes locais passando: união de backups dentro do limite exportável, referências e páginas, atomicidade, proteção contra protótipos, IDs longos e Unicode. Servidor estático bloqueia pastas ocultas e symlinks externos; cobertura inclui concorrência, timeout, charset e falhas DNS sem vazamento. Provedores externos seguem simulados nos testes.
