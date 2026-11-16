@@ -1,0 +1,19 @@
+{
+  "name": "trilha-viva",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/prepare-vendor.mjs && node dev-server.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "check": "node --check src/app.mjs && node --check src/core.mjs",
+    "build": "node scripts/build.mjs",
+    "format": "prettier --write \"src/**/*.{mjs,css}\" \"tests/*.mjs\" \"scripts/*.mjs\" index.html preview-mobile.html dev-server.mjs"
+  },
+  "dependencies": {
+    "pdfjs-dist": "^6.5.438"
+  },
+  "devDependencies": {
+    "prettier": "^3.10.1"
+  }
+}
