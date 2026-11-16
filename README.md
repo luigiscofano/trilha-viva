@@ -44,7 +44,7 @@ Não é um tutor infalível, certificador de aprendizagem ou substituto de orien
 | Backup | Exportação/importação validada, união de registros e recusa de conflitos sem sobrescrita silenciosa |
 | IA | Cliente, contrato e backend opcionais; nenhum provedor real foi conectado ou chamado nesta entrega |
 | Links | Backend opcional restrito a `text/plain` UTF-8 em domínios autorizados, desabilitado por padrão |
-| Conta e sincronização | Não implementadas; armazenamento por navegador |
+| Conta e sincronização | Não ativadas; fundação SQL Supabase em preparação e não executada. Aplicativo permanece local |
 
 Os materiais iniciais de ecologia, estatística e pensamento computacional são fictícios. As sugestões editoriais demonstrativas não são resultados de chamadas reais de IA.
 
@@ -205,3 +205,7 @@ PRs [#1](https://github.com/luigiscofano/trilha-viva/pull/1), [#2](https://githu
 `node_modules`, `vendor`, `dist`, arquivos de ambiente e logs não pertencem ao código-fonte versionado. Dependências são reconstruídas por `npm ci` e build, com respectivas licenças. Nunca publique materiais privados, backups pessoais ou capturas contendo dados reais.
 
 Antes de exposição pública do backend: HTTPS, autenticação multiusuário, isolamento, proteção contra abuso, retenção de dados e orçamento por usuário exigem uma etapa separada. Não houve contratação ou chamada paga nesta entrega; consulte preços atuais antes de ativar serviços.
+
+### Preparação Supabase (não ativa)
+
+O plano de contas e sincronização está em [docs/supabase](docs/supabase/README.md), com SQL em [supabase](supabase/README.md). Nenhum projeto, login ou armazenamento remoto foi ativado. RLS e testes SQL preparados não foram executados; validação de relações/quotas e cliente ainda são bloqueadores. Não execute a migração em um projeto compartilhado ou libere multiusuário apenas por existir este código.

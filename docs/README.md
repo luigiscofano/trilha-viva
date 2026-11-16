@@ -19,3 +19,5 @@ Documente decisões e limitações em português, ligando cada alegação ao có
 Pranchas locais de comparação e referências de trabalho não são evidência de funcionamento e não devem ser publicadas automaticamente.
 
 - [Tipografia A e fontes locais](tipografia.md)
+
+- [Contas e sincronização Supabase: preparação não ativada](supabase/README.md)
