@@ -17,3 +17,5 @@ Comece pelo [README principal](../README.md). Estes documentos distinguem recurs
 Documente decisões e limitações em português, ligando cada alegação ao código, teste ou execução correspondente. Nunca adicione tokens, dados pessoais, materiais privados ou backups reais. A documentação da branch pode descrever trabalho ainda não publicado: sinalize explicitamente o estágio.
 
 Pranchas locais de comparação e referências de trabalho não são evidência de funcionamento e não devem ser publicadas automaticamente.
+
+- [Tipografia A e fontes locais](tipografia.md)

@@ -36,3 +36,7 @@ PRs #1, #2, #3 e #4 foram integrados. A implantação do PR #4 está em andament
 QA manual adicional: renomeação preservando referências e tarefas, histórico após reload, seletor de trechos e calendário opcional. Uma colisão de nome `history` com a API do navegador foi detectada e corrigida antes do PR #4. Animações hover são limitadas a ponteiro preciso, possuem feedback de foco e desativam movimento com reduced-motion. A aplicação não depende de hover no toque.
 
 A segurança de links foi exercitada com mocks/endereços sintéticos. Nenhum domínio externo real foi importado e nenhum serviço de IA foi ativado. A implantação pública não inclui o backend opcional.
+
+## Tipografia A e apresentação do repositório
+
+72 testes locais passam. Build e sintaxe passam. Chromium: Manrope nos títulos, DM Sans em corpo e botões; biblioteca navegável a 390px e desktop sem overflow horizontal. Não é auditoria de todos os navegadores. O GitHub priorizava .github/README.md. Guia preservado em .github/AUTOMACAO.md para mostrar README raiz. A lista nativa de arquivos continua acima dele.
