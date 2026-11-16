@@ -64,3 +64,9 @@ Uma publicação multiusuário exige autenticação real, sessões, autorizaçã
 ## Importação restrita de texto por URL
 
 A rota opcional `POST /api/import-link` utiliza a mesma origem, token e limites da API. É independente do provedor IA, desabilitada por padrão e ainda sem controle na interface. Aceita apenas texto público UTF-8 de domínios explicitamente autorizados; não HTML/PDF remoto. Detalhes, consentimento, DNS/IP fixado e limitações de segurança em [importacao-links.md](importacao-links.md).
+
+## Endurecimento do servidor estático e concorrência
+
+O servidor rejeita arquivos em diretórios ocultos e verifica o caminho real de links simbólicos antes de servir o build. Links para fora da pasta pública, arquivos ocultos ou destinos de outra extensão são recusados. Isso evita exposição acidental de arquivos privados por aliases no build. A pasta de publicação deve continuar sendo produzida por código confiável e não pode ser modificada por usuários externos enquanto é servida; a verificação não é um isolamento de filesystem contra um processo local hostil concorrente.
+
+Respostas não são escritas em conexões já encerradas. Testes locais verificam também que o teto de duas chamadas simultâneas bloqueia uma terceira e que falhas do serviço liberam as vagas. Os testes usam respostas simuladas e não ativam nenhum serviço de IA.

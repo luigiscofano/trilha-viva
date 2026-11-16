@@ -300,3 +300,61 @@ test("resposta insuficiente é aceita e resposta enorme é recusada", async (t) 
   mode = "huge";
   assert.equal((await post(url)).status, 502);
 });
+
+test("build não serve links simbólicos externos ou diretórios ocultos", async (t) => {
+  const { mkdtemp, writeFile, mkdir, symlink, rm } =
+    await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const root = await mkdtemp(join(tmpdir(), "trilha-static-safety-"));
+  const build = join(root, "dist");
+  await mkdir(build);
+  await mkdir(join(build, ".private"));
+  await writeFile(join(root, "private.txt"), "DO_NOT_EXPOSE");
+  await writeFile(join(build, ".private", "settings.json"), "DO_NOT_EXPOSE");
+  await writeFile(join(build, "public.txt"), "PUBLIC");
+  await symlink(join(root, "private.txt"), join(build, "escape.txt"));
+  await symlink(
+    join(build, ".private", "settings.json"),
+    join(build, "alias.json"),
+  );
+  await symlink(join(build, "public.txt"), join(build, "safe.txt"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const url = await start(t, {
+    config: readConfig({ ...env, TRILHA_STATIC_DIRECTORY: build }),
+  });
+  for (const name of ["escape.txt", "alias.json", ".private/settings.json"]) {
+    const response = await fetch(`${url}/${name}`);
+    assert.equal(response.status, 404);
+    assert.doesNotMatch(await response.text(), /DO_NOT_EXPOSE/);
+  }
+  assert.equal(await (await fetch(`${url}/safe.txt`)).text(), "PUBLIC");
+});
+
+test("duas requisições em andamento limitam concorrência e liberam vagas após falha", async (t) => {
+  const releases = [];
+  let calls = 0;
+  const url = await start(t, {
+    fetchImpl: () => {
+      calls++;
+      return new Promise((resolve) =>
+        releases.push(() => resolve(new Response("invalid json"))),
+      );
+    },
+  });
+  const first = post(url);
+  const second = post(url);
+  for (let i = 0; i < 100 && calls < 2; i++)
+    await new Promise((resolve) => setTimeout(resolve, 2));
+  assert.equal(calls, 2);
+  assert.equal((await post(url)).status, 429);
+  releases.splice(0).forEach((release) => release());
+  assert.equal((await first).status, 502);
+  assert.equal((await second).status, 502);
+  const third = post(url);
+  for (let i = 0; i < 100 && calls < 3; i++)
+    await new Promise((resolve) => setTimeout(resolve, 2));
+  assert.equal(calls, 3);
+  releases.splice(0).forEach((release) => release());
+  assert.equal((await third).status, 502);
+});

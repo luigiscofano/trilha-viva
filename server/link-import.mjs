@@ -122,7 +122,7 @@ function downloadText({ url, address }, signal, requestImpl) {
             ),
           );
         if (
-          !/^text\/plain(?:\s*;\s*charset\s*=\s*"?utf-8"?)?\s*$/i.test(
+          !/^text\/plain(?:\s*;\s*charset\s*=\s*(?:utf-8|"utf-8"))?\s*$/i.test(
             response.headers["content-type"] || "",
           ) ||
           (response.headers["content-encoding"] &&
