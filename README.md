@@ -21,6 +21,9 @@ Plataforma web de estudos que reúne materiais, organiza referências, apoia a r
 
 ## Objetivos acadêmicos e de produto
 
+<details>
+<summary>Expandir objetivos acadêmicos e de produto</summary>
+
 - Transformar materiais autorizados em uma rotina de estudo organizada, sem remover o contato com a fonte original.
 - Estimular recuperação ativa: formular perguntas, tentar responder e conferir explicações.
 - Tornar a revisão crítica explícita: editar, aceitar ou descartar sugestões, em vez de salvar automaticamente tudo o que a IA produz.
@@ -29,7 +32,13 @@ Plataforma web de estudos que reúne materiais, organiza referências, apoia a r
 
 Não é um tutor infalível, certificador de aprendizagem ou substituto de orientação docente. O painel acompanha atividades registradas; não mede sozinho domínio de uma disciplina.
 
+
+</details>
+
 ## Funcionalidades e limites reais
+
+<details>
+<summary>Expandir funcionalidades e limites reais</summary>
 
 | Área | Implementação no código atual |
 |---|---|
@@ -62,7 +71,13 @@ Os materiais iniciais de ecologia, estatística e pensamento computacional são 
 | v0 e Bolt | Pontos de integração documentados; não usados para gerar esta interface |
 | Cursor | Não utilizado nesta execução; instruções de desenvolvimento reproduzíveis disponíveis |
 
+
+</details>
+
 ## Direção visual
+
+<details>
+<summary>Expandir direção visual</summary>
 
 A direção azul e a logo **B · Páginas** foram aprovadas. A narrativa é de páginas que se organizam em um percurso de aprendizado: a fonte acompanha a revisão, o painel mostra o próximo passo e a ação principal recebe destaque sem disputar com o conteúdo.
 
@@ -83,7 +98,13 @@ Tipografia aprovada **A: Manrope nos títulos e DM Sans no corpo, controles e me
 
 As fontes variáveis reais são auto-hospedadas por meio dos pacotes Fontsource, com arquivos WOFF2 Latin/Latin Extended e licenças OFL incluídas no build. Não há solicitação ao Google Fonts. DM Sans inclui itálico real; `font-display: swap` mantém o texto legível durante o carregamento. A regra é global para todas as páginas e diálogos, sem alterar a logo aprovada. Veja [tipografia](docs/tipografia.md).
 
+
+</details>
+
 ## Instalação e execução
+
+<details>
+<summary>Expandir instalação e execução</summary>
 
 Requisitos: Node.js 22.13+ ou 24, npm e navegador moderno. Node 24 foi usado no ambiente de desenvolvimento. OCR exige Web Workers e WebAssembly; documentos grandes podem pressionar memória e bateria, especialmente no celular.
 
@@ -120,7 +141,13 @@ Por padrão, a IA continua indisponível (`AI_PROVIDER=unconfigured`). O fronten
 
 `npm start` lê variáveis exportadas no ambiente, mas não carrega `.env` automaticamente. Nunca inclua chaves no frontend ou no repositório. **GitHub Pages não executa esse backend.** O servidor é uma base pessoal/local, não um serviço multiusuário pronto para exposição pública.
 
+
+</details>
+
 ## Fluxo de uso
+
+<details>
+<summary>Expandir fluxo de uso</summary>
 
 1. Adicione texto autorizado ou PDF em **Materiais**; confira os trechos e suas páginas.
 2. Para digitalizados, escolha OCR local; revise o texto reconhecido antes de salvá-lo. OCR não é compreensão semântica e pode errar.
@@ -131,7 +158,13 @@ Por padrão, a IA continua indisponível (`AI_PROVIDER=unconfigured`). O fronten
 
 Renomear um material mantém IDs e referências. Excluir uma fonte vinculada exige compreender e confirmar a exclusão conjunta das sugestões/tarefas relacionadas; não deixa citações órfãs silenciosamente.
 
+
+</details>
+
 ## Arquitetura
+
+<details>
+<summary>Expandir arquitetura</summary>
 
 ```mermaid
 flowchart LR
@@ -170,7 +203,13 @@ flowchart LR
 | [`assets/`](assets/README.md) | Referências de marca autorizadas |
 | [`docs/`](docs/README.md) | Decisões, configuração, limites e evidências |
 
+
+</details>
+
 ## Dados, histórico e privacidade
+
+<details>
+<summary>Expandir dados, histórico e privacidade</summary>
 
 Materiais, sugestões, tarefas e histórico ficam no navegador. A chave legada `trilha-viva-preview-v1` permanece para não descartar dados existentes; o conteúdo evolui para **schema 2**. Backups v1 continuam aceitos e recebem histórico vazio, sem reconstruir eventos que nunca foram registrados.
 
@@ -180,7 +219,13 @@ O backup JSON inclui textos completos. Guarde-o privadamente. A importação val
 
 PDF e OCR são locais. Enviar um material à IA é outra etapa: título, trechos e referências selecionados passam ao backend e provedor configurado, via n8n quando habilitado. O token de operador da sessão não é a chave de API; fica na memória da aba, fora dos backups. A política do provedor/infraestrutura precisa ser revista antes de materiais privados.
 
+
+</details>
+
 ## Desafios e decisões de engenharia
+
+<details>
+<summary>Expandir desafios e decisões de engenharia</summary>
 
 - **Fonte verificável:** páginas e trechos reais em vez de citações inventadas. Validação estrutural não substitui leitura crítica.
 - **PDF não é texto uniforme:** colunas, fórmulas e tabelas podem perder ordem; digitalizados precisam de OCR e conferência.
@@ -190,13 +235,25 @@ PDF e OCR são locais. Enviar um material à IA é outra etapa: título, trechos
 - **Links e SSRF:** a importação não é um crawler genérico; restringe destinos e tipos, não contorna login ou permissões.
 - **Responsividade:** hierarquia e leitura de fontes precisam sobreviver a telas estreitas, não apenas diminuir a página desktop.
 
+
+</details>
+
 ## Qualidade e validação
+
+<details>
+<summary>Expandir qualidade e validação</summary>
 
 As suítes verificam núcleo, migração/histórico, referências, PDFs sintéticos com PDF.js real, OCR, calendário ICS, contrato/cliente de IA e servidor. Parte dos testes usa mocks controlados; eles não comprovam acesso a provedores ou serviços externos. Consulte [registro de validação](docs/validacao.md) para separar execuções anteriores da etapa atual.
 
 Teclado, foco, rótulos, regiões de status, modais nativos e redução de movimento fazem parte da implementação. Não declaramos conformidade WCAG completa nem compatibilidade testada em todos os aparelhos. O PR #4 passou no CI com 70 testes. O OCR real foi validado no navegador com duas páginas sintéticas reconhecidas e salvas. Isso não substitui testes com documentos complexos ou aparelhos diversos; o frontend atualizado foi conferido após a implantação.
 
+
+</details>
+
 ## Publicação e manutenção
+
+<details>
+<summary>Expandir publicação e manutenção</summary>
 
 O workflow de GitHub Actions executa testes, sintaxe e build antes de publicar `dist/` no Pages. O resultado da execução/deployment é a evidência de publicação. Não deduza versão em produção apenas por este README.
 
@@ -209,3 +266,6 @@ Antes de exposição pública do backend: HTTPS, autenticação multiusuário, i
 ### Preparação Supabase (não ativa)
 
 O plano de contas e sincronização está em [docs/supabase](docs/supabase/README.md), com SQL em [supabase](supabase/README.md). Nenhum projeto, login ou armazenamento remoto foi ativado. RLS e testes SQL preparados não foram executados; validação de relações/quotas e cliente ainda são bloqueadores. Não execute a migração em um projeto compartilhado ou libere multiusuário apenas por existir este código.
+
+</details>
+
